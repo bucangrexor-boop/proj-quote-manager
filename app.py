@@ -474,4 +474,3 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
-31fab77 (Initial commit)
