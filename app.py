@@ -296,8 +296,12 @@ def open_spreadsheet():
 def worksheet_create_with_headers(ss, title: str):
     ws = ss.add_worksheet(title=title, rows=100, cols=20)
     ws.update([SHEET_HEADERS])
+
+    # Batch label updates to avoid APIError
+    label_updates = []
     for label, label_cell, _ in TERMS_LABELS:
-        ws.update(label_cell, label)
+        label_updates.append({"range": label_cell, "values": [[label]]})
+    ws.batch_update([{"range": u["range"], "values": u["values"]} for u in label_updates])
     return ws
 
 
