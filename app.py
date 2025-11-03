@@ -121,7 +121,7 @@ if st.session_state.page == "welcome":
     st.header("Welcome!")
     if st.button("Create a Project Quote"):
         st.session_state.page = "create_project"
-        st.experimental_rerun()
+        st.rerun()
 
     st.subheader("Existing Projects")
     worksheets = [ws.title for ws in ss.worksheets()]
@@ -135,7 +135,7 @@ if st.session_state.page == "welcome":
             if st.button("Open", key=f"open_{name}"):
                 st.session_state.current_project = name
                 st.session_state.page = "project"
-                st.experimental_rerun()
+                st.rerun()
 
 elif st.session_state.page == "create_project":
     st.header("Create Project Quote")
@@ -149,10 +149,10 @@ elif st.session_state.page == "create_project":
             ws = worksheet_create_with_headers(ss, project_name)
             st.session_state.current_project = project_name
             st.session_state.page = "project"
-            st.experimental_rerun()
+            
     if st.button("Back"):
         st.session_state.page = "welcome"
-        st.experimental_rerun()
+        
 
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
@@ -160,7 +160,7 @@ elif st.session_state.page == "project":
     ws = ss.worksheet(project)
 
     df = df_from_worksheet(ws)
-    edited = st.experimental_data_editor(df, num_rows="dynamic", use_container_width=True)
+    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
     st.metric("Total", f"₱{total:,.2f}")
 
@@ -172,11 +172,11 @@ elif st.session_state.page == "project":
     with col[1]:
         if st.button("Add Row"):
             edited.loc[len(edited)] = [len(edited) + 1, "", "", 0, "", 0, 0]
-            st.experimental_rerun()
+            
     with col[2]:
         if st.button("Back"):
             st.session_state.page = "welcome"
-            st.experimental_rerun()
+            
 
     st.markdown("---")
     st.subheader("Terms & Conditions")
@@ -371,7 +371,7 @@ if st.session_state.page == "welcome":
             if st.button("Open", key=f"open_{name}"):
                 st.session_state.current_project = name
                 st.session_state.page = "project"
-                st.experimental_rerun()
+                
 
 elif st.session_state.page == "create_project":
     st.header("Create Project Quote")
@@ -385,10 +385,10 @@ elif st.session_state.page == "create_project":
             ws = worksheet_create_with_headers(ss, project_name)
             st.session_state.current_project = project_name
             st.session_state.page = "project"
-            st.experimental_rerun()
+            
     if st.button("Back"):
         st.session_state.page = "welcome"
-        st.experimental_rerun()
+        
 
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
@@ -396,7 +396,7 @@ elif st.session_state.page == "project":
     ws = ss.worksheet(project)
 
     df = df_from_worksheet(ws)
-    edited = st.experimental_data_editor(df, num_rows="dynamic", use_container_width=True)
+    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
     st.metric("Total", f"₱{total:,.2f}")
 
@@ -408,11 +408,11 @@ elif st.session_state.page == "project":
     with col[1]:
         if st.button("Add Row"):
             edited.loc[len(edited)] = [len(edited) + 1, "", "", 0, "", 0, 0]
-            st.experimental_rerun()
+            
     with col[2]:
         if st.button("Back"):
             st.session_state.page = "welcome"
-            st.experimental_rerun()
+            
 
     st.markdown("---")
     st.subheader("Terms & Conditions")
