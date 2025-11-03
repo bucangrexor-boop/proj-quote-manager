@@ -1,4 +1,3 @@
-HEAD
 # Streamlit Project Quotation Manager
 # File: app.py
 
