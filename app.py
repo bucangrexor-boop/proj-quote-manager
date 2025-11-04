@@ -173,7 +173,6 @@ elif st.session_state.page == "create_project":
 # ----------------------
 import time
 import gspread
-
 def get_worksheet_with_retry(ss, project, retries=3, delay=1):
     for i in range(retries):
         try:
@@ -186,7 +185,9 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.session_state.page = "welcome"
                 st.stop()
 
-elif st.session_state.page == "project":
+
+# ✅ start new block
+if st.session_state.page == "project":
     project = st.session_state.get("current_project")
     st.header(f"Project: {project}")
 
@@ -196,7 +197,7 @@ elif st.session_state.page == "project":
     df = df_from_worksheet(ws)
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
-    st.metric("Total", f"₱{total:,.2f}")
+    st.metric("Total", f"₱{total:.2f}")
 
     col = st.columns(3)
     with col[0]:
@@ -266,6 +267,7 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
