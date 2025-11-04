@@ -290,10 +290,105 @@ elif st.session_state.page == "create_project":
 # ----------------------
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from datetime import datetime
+def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-aa43-48230c6c1bf2.jpeg"):
+    # PDF buffer
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=40, bottomMargin=30)
+    elements = []
+    styles = getSampleStyleSheet()
 
+    # --- HEADER SECTION ---
+    # Add logo
+    try:
+        logo = Image(logo_path, width=1.3*inch, height=1.3*inch)
+    except Exception:
+        logo = None
+
+    # Company header
+    company_title = Paragraph("<b>aNTS Technologies, Inc.</b>", ParagraphStyle('title', fontSize=16, leading=18))
+    tagline = Paragraph("Solutions for a Small Planet", ParagraphStyle('tagline', fontSize=10, textColor=colors.gray))
+    title = Paragraph("<b>PRICE QUOTE</b>", ParagraphStyle('title', fontSize=16, alignment=1))
+    project = Paragraph(f"<b>Project:</b> {project_name}", ParagraphStyle('normal', fontSize=11))
+    date_str = datetime.now().strftime("%B %d, %Y")
+    date_p = Paragraph(f"<b>Date:</b> {date_str}", ParagraphStyle('normal', fontSize=11))
+
+    # Header layout (logo + company info)
+    header_data = [[logo, 
+                    [company_title, tagline, Spacer(1, 6), project, date_p]]]
+    header_table = Table(header_data, colWidths=[1.5*inch, 4.5*inch])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0,0), (-1,-1), "TOP"),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0)
+    ]))
+
+    elements.append(header_table)
+    elements.append(Spacer(1, 15))
+    elements.append(title)
+    elements.append(Spacer(1, 15))
+
+    # --- QUOTATION TABLE ---
+    # Convert dataframe to list of lists
+    data = [list(df.columns)] + df.values.tolist()
+
+    table = Table(data, repeatRows=1)
+    table_style = TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.black),
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("ALIGN", (0,0), (-1,-1), "CENTER"),
+        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
+        ("FONTNAME", (0,1), (-1,-1), "Helvetica"),
+        ("FONTSIZE", (0,0), (-1,-1), 9),
+        ("BOTTOMPADDING", (0,0), (-1,0), 6),
+        ("TOPPADDING", (0,0), (-1,0), 6)
+    ])
+    table.setStyle(table_style)
+    elements.append(table)
+    elements.append(Spacer(1, 15))
+
+    # --- TOTALS SECTION ---
+    total_data = [
+        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
+        ["Discount", f"₱ {totals['discount']:.2f}"],
+        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
+        ["TOTAL", f"₱ {totals['total']:.2f}"]
+    ]
+    total_table = Table(total_data, colWidths=[4*inch, 2.5*inch])
+    total_table.setStyle(TableStyle([
+        ("GRID", (0,0), (-1,-1), 0.5, colors.grey),
+        ("ALIGN", (1,0), (-1,-1), "RIGHT"),
+        ("FONTNAME", (0,-1), (-1,-1), "Helvetica-Bold"),
+        ("BACKGROUND", (0,-1), (-1,-1), colors.lightgreen),
+        ("FONTSIZE", (0,0), (-1,-1), 10)
+    ]))
+    elements.append(total_table)
+    elements.append(Spacer(1, 20))
+
+    # --- TERMS AND CONDITIONS ---
+    elements.append(Paragraph("<b>TERMS & CONDITIONS</b>", styles["Heading4"]))
+    for key, value in terms.items():
+        elements.append(Paragraph(f"<b>{key}:</b> {value}", styles["Normal"]))
+        elements.append(Spacer(1, 4))
+
+    elements.append(Spacer(1, 20))
+
+    # --- SIGNATURE SECTION ---
+    elements.append(Paragraph("Prepared by:", styles["Normal"]))
+    elements.append(Spacer(1, 30))
+    elements.append(Paragraph("<b>_________________________</b>", styles["Normal"]))
+    elements.append(Paragraph("aNTS Technologies, Inc.", styles["Normal"]))
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph("<i>Thank you for doing business with us!</i>", styles["Italic"]))
+
+    # Build PDF
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+    
 def get_worksheet_with_retry(ss, project, retries=3, delay=1):
     for i in range(retries):
         try:
@@ -305,53 +400,8 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.error(f"Failed to open worksheet '{project}'. Please try again in a few seconds.")
                 st.session_state.page = "welcome"
                 st.stop()
-                
-def generate_pdf(project_name, df, total, discount, vat, grand_total, terms):
-    """Generate PDF bytes for download."""
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=2*cm, leftMargin=2*cm,
-                            topMargin=2*cm, bottomMargin=2*cm)
-    styles = getSampleStyleSheet()
-    elements = []
 
-    # Title
-    title = Paragraph(f"<b>Project Quotation</b><br/>{project_name}", styles["Title"])
-    elements.append(title)
-    elements.append(Spacer(1, 12))
 
-    # Table Data
-    table_data = [list(df.columns)] + df.values.tolist()
-    t = Table(table_data, repeatRows=1)
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-    ]))
-    elements.append(t)
-    elements.append(Spacer(1, 12))
-
-    # Totals
-    totals_text = f"""
-    <b>Total:</b> ₱{total:,.2f}<br/>
-    <b>Discount:</b> -₱{discount:,.2f}<br/>
-    <b>VAT (12%):</b> ₱{vat:,.2f}<br/>
-    <b>Grand Total:</b> ₱{grand_total:,.2f}
-    """
-    elements.append(Paragraph(totals_text, styles["Normal"]))
-    elements.append(Spacer(1, 12))
-
-    # Terms & Conditions
-    elements.append(Paragraph("<b>Terms & Conditions</b>", styles["Heading3"]))
-    for k, v in terms.items():
-        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
-
-    doc.build(elements)
-    pdf_bytes = buffer.getvalue()
-    buffer.close()
-    return pdf_bytes
 
 # ✅ start new block
 if st.session_state.page == "project":
@@ -450,17 +500,26 @@ if st.session_state.page == "project":
             "Discount": t_discount
         })
         st.success("Saved terms successfully.")
+        
+    if export_pdf:
+    terms = read_terms_from_ws(ws)
+    totals = {
+        "subtotal": total,
+        "discount": discount,
+        "vat": vat,
+        "total": grand_total
+    }
+    pdf_buffer = generate_pdf(project, edited, totals, terms)
+    st.download_button(
+        label="⬇️ Download Price Quote PDF",
+        data=pdf_buffer,
+        file_name=f"{project}_quotation.pdf",
+        mime="application/pdf"
+    )
+
 
     # === PDF Export ===
-    if export_pdf:
-        terms = read_terms_from_ws(ws)
-        pdf_bytes = generate_pdf(project, edited, total, discount, vat, grand_total, terms)
-        st.download_button(
-            label="⬇️ Download PDF",
-            data=pdf_bytes,
-            file_name=f"{project}_quotation.pdf",
-            mime="application/pdf"
-        )
+   
 
     
 # ----------------------
@@ -498,6 +557,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
