@@ -319,13 +319,12 @@ if st.session_state.page == "project":
     except Exception:
         discount = 0.0
 
-    discount_amount = total * discount
     total_after_discount = total - discount_amount
-    vat = total_after_discount * 0.12
-    grand_total = total_after_discount + vat
+    vat = total * 0.12
+    grand_total = total_after_discount + vat - discount
 
     st.metric("Total", f"₱{total:.2f}")
-    st.metric("Discount", f"-₱{discount_amount:.2f}")
+    st.metric("Discount", f"₱{discount:.2f}")
     st.metric("VAT (12%)", f"₱{vat:.2f}")
     st.metric("Grand Total", f"₱{grand_total:.2f}")
 
@@ -400,6 +399,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
