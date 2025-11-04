@@ -121,6 +121,11 @@ if "page" not in st.session_state:
     st.session_state.page = "welcome"
 
 ss = open_spreadsheet()
+try:
+    st.success(f"✅ Connected to Google Sheet: {ss.title}")
+except Exception as e:
+    st.error(f"❌ Failed to open Google Sheet: {type(e).__name__} - {e}")
+    st.stop()
 
 # ----------------------
 # Welcome Page
@@ -267,6 +272,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
