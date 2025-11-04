@@ -1,4 +1,4 @@
-# Streamlit Project Quotation Manager
+# Streamlit Project Quotation Manager 
 # File: app.py
 
 import io
@@ -106,19 +106,44 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
             return
 
 
-def df_from_worksheet(ws) -> pd.DataFrame:
-    values = ws.get_all_values()
-    if not values:
-        return pd.DataFrame(columns=SHEET_HEADERS)
-    df = pd.DataFrame(values[1:], columns=values[0])
-    for col in SHEET_HEADERS:
-        if col not in df.columns:
-            df[col] = ""
-    df = df[SHEET_HEADERS]
-    df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
-    df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
-    df["Subtotal"] = df["Quantity"] * df["Unit Price"]
-    return df
+def df_from_worksheet(ws):
+    import gspread
+    import pandas as pd
+    import time
+    from gspread.exceptions import APIError
+
+    for attempt in range(3):
+        try:
+            # Try to read only the first 1000 rows and columns A–Z (adjustable)
+            values = ws.get("A1:Z1000")
+
+            # Handle empty sheet gracefully
+            if not values:
+                st.warning("⚠️ The worksheet is empty.")
+                return pd.DataFrame(columns=SHEET_HEADERS)
+
+            headers = values[0]
+            data = values[1:]
+            df = pd.DataFrame(data, columns=headers)
+
+            # Normalize numeric columns
+            for col in ["Quantity", "Unit Price", "Subtotal"]:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+            return df
+
+        except APIError as e:
+            if attempt < 2:
+                time.sleep(2)
+            else:
+                st.error("❌ Error reading Google Sheet — please wait and retry.")
+                st.write(str(e))
+                return pd.DataFrame(columns=SHEET_HEADERS)
+
+        except Exception as e:
+            st.error(f"❌ Unexpected error while reading sheet: {e}")
+            return pd.DataFrame(columns=SHEET_HEADERS)
 
 
 def read_terms_from_ws(ws) -> dict:
@@ -299,6 +324,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
