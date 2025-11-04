@@ -34,6 +34,7 @@ TERMS_LABELS = [
     ("Delivery", "I3", "J3"),
     ("Warranty", "I4", "J4"),
     ("Price Validity", "I5", "J5"),
+    ("Discount", "I6","J6")
 ]
 
 # ----------------------
@@ -338,6 +339,7 @@ if st.session_state.page == "project":
     with col1:
         t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
         t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""))
+        t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
     with col2:
         t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
         t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
@@ -348,6 +350,7 @@ if st.session_state.page == "project":
             "Delivery": t_delivery,
             "Warranty": t_warranty,
             "Price Validity": t_price,
+            "Discount": t_discount
         })
         st.success("Saved terms successfully.")
 # ----------------------
@@ -385,6 +388,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
