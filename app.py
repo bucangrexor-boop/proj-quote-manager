@@ -315,8 +315,6 @@ if st.session_state.page == "project":
     total = edited["Subtotal"].sum()
     try:
         discount = ws.acell("J6").value or "0"
-    except Exception:
-        discount = 0.0
         
     vat = total * 0.12
     grand_total = total + vat - discount
@@ -397,6 +395,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
