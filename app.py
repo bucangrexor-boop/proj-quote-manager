@@ -318,10 +318,9 @@ if st.session_state.page == "project":
         discount = float(discount_str.replace("%", "").strip()) / 100 if "%" in discount_str else float(discount_str)
     except Exception:
         discount = 0.0
-
-    total_after_discount = total - discount_amount
+        
     vat = total * 0.12
-    grand_total = total_after_discount + vat - discount
+    grand_total = total + vat - discount
 
     st.metric("Total", f"₱{total:.2f}")
     st.metric("Discount", f"₱{discount:.2f}")
@@ -399,6 +398,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
