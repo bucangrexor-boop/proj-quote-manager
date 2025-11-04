@@ -39,6 +39,7 @@ TERMS_LABELS = [
 # ----------------------
 # Helpers
 # ----------------------
+from gspread.exceptions import APIError
 
 @st.cache_resource
 def get_gspread_client():
@@ -50,7 +51,7 @@ def get_gspread_client():
     credentials = service_account.Credentials.from_service_account_info(creds_info, scopes=scopes)
     return gspread.authorize(credentials)
 
-
+@st.cache_resource(ttl=600)
 def open_spreadsheet():
     client = get_gspread_client()
     key = st.secrets[GSHEETS_KEY_SECRET]
@@ -182,7 +183,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
     # Fallback (shouldn't reach here)
     return pd.DataFrame(columns=SHEET_HEADERS)
     
-@st.cache_data(ttl=90)
+@st.cache_data(ttl=120)
 def df_from_worksheet_cached(spreadsheet_key, worksheet_title):
     """Fetch and process worksheet data with caching."""
     client = get_gspread_client()
@@ -388,6 +389,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
