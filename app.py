@@ -502,20 +502,20 @@ if st.session_state.page == "project":
         st.success("Saved terms successfully.")
         
     if export_pdf:
-    terms = read_terms_from_ws(ws)
-    totals = {
-        "subtotal": total,
-        "discount": discount,
-        "vat": vat,
-        "total": grand_total
-    }
-    pdf_buffer = generate_pdf(project, edited, totals, terms)
-    st.download_button(
-        label="⬇️ Download Price Quote PDF",
-        data=pdf_buffer,
-        file_name=f"{project}_quotation.pdf",
-        mime="application/pdf"
-    )
+        terms = read_terms_from_ws(ws)
+        totals = {
+            "subtotal": total,
+            "discount": discount,
+            "vat": vat,
+            "total": grand_total
+        }
+        pdf_buffer = generate_pdf(project, edited, totals, terms)
+        st.download_button(
+            label="⬇️ Download Price Quote PDF",
+            data=pdf_buffer,
+            file_name=f"{project}_quotation.pdf",
+            mime="application/pdf"
+        )
 
 
     # === PDF Export ===
@@ -557,6 +557,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
