@@ -358,35 +358,36 @@ if st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
    # === Top header row with project title + buttons ===
-col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
 
-with col1:
-    st.markdown(f"### 🧾 Project: {project}")
+    with col1:
+        st.markdown(f"### 🧾 Project: {project}")
+    
+    with col2:
+        if st.button("💾 Save", key="save_top"):
+            ws = get_worksheet_with_retry(ss, project)
+            df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+            save_df_to_worksheet(ws, df_to_save)
+            st.success("Items saved to Google Sheet.")
 
-with col2:
-    if st.button("💾 Save", key="save_top"):
-        ws = get_worksheet_with_retry(ss, project)
-        df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-        save_df_to_worksheet(ws, df_to_save)
-        st.success("Items saved to Google Sheet.")
+    with col3:
+        if st.button("➕ Row", key="add_top"):
+            ws = get_worksheet_with_retry(ss, project)
+            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+            df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
+            save_df_to_worksheet(ws, df)
+            st.rerun()
 
-with col3:
-    if st.button("➕ Row", key="add_top"):
-        ws = get_worksheet_with_retry(ss, project)
-        df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-        df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
-        save_df_to_worksheet(ws, df)
-        st.rerun()
+    with col4:
+        if st.button("⬅️ Back", key="back_top"):
+            st.session_state.page = "welcome"
+            st.rerun()
 
-with col4:
-    if st.button("⬅️ Back", key="back_top"):
-        st.session_state.page = "welcome"
-        st.rerun()
-
-with col5:
-    if st.button("📄 Export PDF", key="export_pdf"):
-        ws = get_worksheet_with_retry(ss, project)
-        df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+    with col5:
+        if st.button("📄 Export PDF", key="export_pdf"):
+            ws = get_worksheet_with_retry(ss, project)
+            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+            
         total = df["Subtotal"].sum()
         try:
             discount = float(ws.acell("J6").value or 0)
@@ -497,6 +498,7 @@ with col5:
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
