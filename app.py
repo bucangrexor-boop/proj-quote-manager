@@ -4,6 +4,7 @@
 import io
 import json
 import math
+import time
 import pandas as pd
 import streamlit as st
 import gspread
@@ -113,7 +114,7 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
             st.error(f"❌ Unexpected error while saving: {e}")
             return
 
-
+@st.cache_data(ttl=30)
 def df_from_worksheet(ws) -> pd.DataFrame:
     """
     Safely read worksheet values and return a DataFrame that always has
@@ -188,6 +189,16 @@ def df_from_worksheet(ws) -> pd.DataFrame:
 
     # Fallback (shouldn't reach here)
     return pd.DataFrame(columns=SHEET_HEADERS)
+    
+def safe_get_all_values(ws, retries=3, delay=2):
+    for i in range(retries):
+        try:
+            return ws.get_all_values()
+        except gspread.exceptions.APIError as e:
+            if "Quota exceeded" in str(e) and i < retries - 1:
+                time.sleep(delay)
+            else:
+                raise
 
 def read_terms_from_ws(ws) -> dict:
     terms = {}
@@ -367,6 +378,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
