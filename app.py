@@ -58,7 +58,6 @@ def open_spreadsheet():
     st.write("🔍 Using spreadsheet key:", key)
     try:
         ss = client.open_by_key(key)
-        st.success(f"✅ Opened sheet titled: {ss.title}")
         return ss
     except Exception as e:
         st.error(f"❌ Could not open sheet: {type(e).__name__} - {e}")
@@ -103,7 +102,6 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
         try:
             ws.batch_clear(["A1:Z100"])  # safer clear — only clears first 1000 rows
             ws.update(cell_range, values)
-            return st.success("✅ Items saved to Google Sheet successfully!")
         except gspread.exceptions.APIError as e:
             if attempt < 2:
                 time.sleep(2)
@@ -240,11 +238,6 @@ if "page" not in st.session_state:
     st.session_state.page = "welcome"
 
 ss = open_spreadsheet()
-try:
-    st.success(f"✅ Connected to Google Sheet: {ss.title}")
-except Exception as e:
-    st.error(f"❌ Failed to open Google Sheet: {type(e).__name__} - {e}")
-    st.stop()
 
 # ----------------------
 # Welcome Page
@@ -389,6 +382,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
