@@ -387,7 +387,9 @@ if st.session_state.page == "project":
         if st.button("📄 Export PDF", key="export_pdf"):
             ws = get_worksheet_with_retry(ss, project)
             df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-
+            
+    # ✅ safer worksheet opening (keep this below header)
+    ws = get_worksheet_with_retry(ss, project)
         df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
         edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
         total = df["Subtotal"].sum()
@@ -500,6 +502,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
