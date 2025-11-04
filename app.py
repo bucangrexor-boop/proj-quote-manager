@@ -106,38 +106,71 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
             return
 
 
-def df_from_worksheet(ws):
-    import gspread
-    import pandas as pd
+def df_from_worksheet(ws) -> pd.DataFrame:
+    """
+    Safely read worksheet values and return a DataFrame that always has
+    the columns defined in SHEET_HEADERS. Handles rows with more/fewer
+    cells than headers by truncating or padding with empty strings.
+    Retries on API errors and returns an empty DataFrame on failure.
+    """
     import time
     from gspread.exceptions import APIError
 
+    # Try a few times to avoid transient API failures
     for attempt in range(3):
         try:
-            # Try to read only the first 1000 rows and columns A–Z (adjustable)
+            # Read a bounded range to avoid huge responses; adjust "Z" if you need more cols
             values = ws.get("A1:Z1000")
 
-            # Handle empty sheet gracefully
-            if not values:
-                st.warning("⚠️ The worksheet is empty.")
+            # If sheet empty or no values, return empty DF with proper headers
+            if not values or len(values) == 0:
                 return pd.DataFrame(columns=SHEET_HEADERS)
 
-            headers = values[0]
-            data = values[1:]
-            df = pd.DataFrame(data, columns=headers)
+            # First row considered headers (but may be malformed)
+            raw_headers = values[0]
+            data_rows = values[1:] if len(values) > 1 else []
 
-            # Normalize numeric columns
-            for col in ["Quantity", "Unit Price", "Subtotal"]:
-                if col in df.columns:
-                    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+            # If the header row doesn't match expected column count, fall back to SHEET_HEADERS
+            if len(raw_headers) != len(SHEET_HEADERS):
+                headers = SHEET_HEADERS.copy()
+            else:
+                headers = raw_headers
+
+            # Normalize each row to match header length:
+            normalized = []
+            for row in data_rows:
+                if len(row) < len(headers):
+                    # pad short rows
+                    row = row + [""] * (len(headers) - len(row))
+                elif len(row) > len(headers):
+                    # truncate long rows
+                    row = row[: len(headers)]
+                normalized.append(row)
+
+            # Create DataFrame using the decided headers
+            df = pd.DataFrame(normalized, columns=headers)
+
+            # Ensure all expected columns exist (in case we used fallback headers)
+            for col in SHEET_HEADERS:
+                if col not in df.columns:
+                    df[col] = ""
+
+            # Reorder to canonical column order
+            df = df[SHEET_HEADERS]
+
+            # Convert numeric columns safely
+            df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
+            df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
+            df["Subtotal"] = df["Quantity"] * df["Unit Price"]
 
             return df
 
         except APIError as e:
             if attempt < 2:
-                time.sleep(2)
+                time.sleep(1.5)
+                continue
             else:
-                st.error("❌ Error reading Google Sheet — please wait and retry.")
+                st.error("❌ Error reading Google Sheet — please wait and try again.")
                 st.write(str(e))
                 return pd.DataFrame(columns=SHEET_HEADERS)
 
@@ -145,6 +178,8 @@ def df_from_worksheet(ws):
             st.error(f"❌ Unexpected error while reading sheet: {e}")
             return pd.DataFrame(columns=SHEET_HEADERS)
 
+    # Fallback (shouldn't reach here)
+    return pd.DataFrame(columns=SHEET_HEADERS)
 
 def read_terms_from_ws(ws) -> dict:
     terms = {}
@@ -324,6 +359,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
