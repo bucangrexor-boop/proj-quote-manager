@@ -288,6 +288,12 @@ elif st.session_state.page == "create_project":
 # ----------------------
 # Project Page
 # ----------------------
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+
 def get_worksheet_with_retry(ss, project, retries=3, delay=1):
     for i in range(retries):
         try:
@@ -299,37 +305,105 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.error(f"Failed to open worksheet '{project}'. Please try again in a few seconds.")
                 st.session_state.page = "welcome"
                 st.stop()
+                
+def generate_pdf(project_name, df, total, discount, vat, grand_total, terms):
+    """Generate PDF bytes for download."""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=2*cm, leftMargin=2*cm,
+                            topMargin=2*cm, bottomMargin=2*cm)
+    styles = getSampleStyleSheet()
+    elements = []
 
+    # Title
+    title = Paragraph(f"<b>Project Quotation</b><br/>{project_name}", styles["Title"])
+    elements.append(title)
+    elements.append(Spacer(1, 12))
+
+    # Table Data
+    table_data = [list(df.columns)] + df.values.tolist()
+    t = Table(table_data, repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.lightgrey),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+    ]))
+    elements.append(t)
+    elements.append(Spacer(1, 12))
+
+    # Totals
+    totals_text = f"""
+    <b>Total:</b> ₱{total:,.2f}<br/>
+    <b>Discount:</b> -₱{discount:,.2f}<br/>
+    <b>VAT (12%):</b> ₱{vat:,.2f}<br/>
+    <b>Grand Total:</b> ₱{grand_total:,.2f}
+    """
+    elements.append(Paragraph(totals_text, styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    # Terms & Conditions
+    elements.append(Paragraph("<b>Terms & Conditions</b>", styles["Heading3"]))
+    for k, v in terms.items():
+        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
+
+    doc.build(elements)
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
 
 # ✅ start new block
 if st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
-    # === Top header row with project title + buttons ===
-    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+   # === Top header row with project title + buttons ===
+col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
 
-    with col1:
-        st.markdown(f"### 🧾 Project: {project}")
+with col1:
+    st.markdown(f"### 🧾 Project: {project}")
 
-    with col2:
-        if st.button("💾 Save", key="save_top"):
-            ws = get_worksheet_with_retry(ss, project)
-            df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            save_df_to_worksheet(ws, df_to_save)
-            st.success("Items saved to Google Sheet.")
+with col2:
+    if st.button("💾 Save", key="save_top"):
+        ws = get_worksheet_with_retry(ss, project)
+        df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+        save_df_to_worksheet(ws, df_to_save)
+        st.success("Items saved to Google Sheet.")
 
-    with col3:
-        if st.button("➕ Row", key="add_top"):
-            ws = get_worksheet_with_retry(ss, project)
-            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
-            save_df_to_worksheet(ws, df)
-            st.rerun()
+with col3:
+    if st.button("➕ Row", key="add_top"):
+        ws = get_worksheet_with_retry(ss, project)
+        df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+        df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
+        save_df_to_worksheet(ws, df)
+        st.rerun()
 
-    with col4:
-        if st.button("⬅️ Back", key="back_top"):
-            st.session_state.page = "welcome"
-            st.rerun()
+with col4:
+    if st.button("⬅️ Back", key="back_top"):
+        st.session_state.page = "welcome"
+        st.rerun()
+
+with col5:
+    if st.button("📄 Export PDF", key="export_pdf"):
+        ws = get_worksheet_with_retry(ss, project)
+        df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+        total = df["Subtotal"].sum()
+        try:
+            discount = float(ws.acell("J6").value or 0)
+        except Exception:
+            discount = 0.0
+        vat = total * 0.12
+        grand_total = total + vat - discount
+        terms = read_terms_from_ws(ws)
+        
+        pdf_bytes = generate_pdf(project, df, total, discount, vat, grand_total, terms)
+        st.download_button(
+            label="⬇️ Download PDF",
+            data=pdf_bytes,
+            file_name=f"{project}_quotation.pdf",
+            mime="application/pdf"
+        )
+
 
     # ✅ safer worksheet opening (keep this below header)
     ws = get_worksheet_with_retry(ss, project)
@@ -423,6 +497,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
