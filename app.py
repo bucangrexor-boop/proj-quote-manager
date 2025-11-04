@@ -357,7 +357,7 @@ def generate_pdf(project_name, df, total, discount, vat, grand_total, terms):
 if st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
-   # === Top header row with project title + buttons ===
+    # === Top header row with project title + buttons ===
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
 
     with col1:
@@ -384,57 +384,40 @@ if st.session_state.page == "project":
             st.rerun()
 
     with col5:
-        if st.button("📄 Export PDF", key="export_pdf"):
-            ws = get_worksheet_with_retry(ss, project)
-            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            
-        # ✅ safer worksheet opening (keep this below header)
-        ws = get_worksheet_with_retry(ss, project)
-        df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-        edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
-        total = df["Subtotal"].sum()
-        try:
-            discount = float(ws.acell("J6").value or 0)
-        except Exception:
-            discount = 0.0
-        vat = total * 0.12
-        grand_total = total + vat - discount
-        terms = read_terms_from_ws(ws)
-        
-        pdf_bytes = generate_pdf(project, df, total, discount, vat, grand_total, terms)
-        st.download_button(
-            label="⬇️ Download PDF",
-            data=pdf_bytes,
-            file_name=f"{project}_quotation.pdf",
-            mime="application/pdf"
-        )
+        export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-
-    # ✅ safer worksheet opening (keep this below header)
+    # === Main Table ===
     ws = get_worksheet_with_retry(ss, project)
-
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+
+    edited = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="editor_main"
+    )
+
+    # Compute totals
     total = edited["Subtotal"].sum()
     try:
         discount = float(ws.acell("J6").value or 0)
     except Exception:
         discount = 0.0
-
     vat = total * 0.12
     grand_total = total + vat - discount
 
+    # === Totals display ===
     st.markdown("""
         <style>
         .big-metric {
             font-size: 28px;
             font-weight: 700;
-            color: #222; /* dark text */
+            color: #222;
         }
         .highlight {
             font-size: 30px;
             font-weight: 800;
-            color: #0a8754; /* green color for emphasis */
+            color: #0a8754;
         }
         </style>
     """, unsafe_allow_html=True)
@@ -444,11 +427,11 @@ if st.session_state.page == "project":
     st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
 
+    # === Terms & Conditions ===
     st.markdown("---")
     st.subheader("Terms & Conditions")
 
     terms = read_terms_from_ws(ws)
-
     col1, col2 = st.columns(2)
     with col1:
         t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
@@ -458,7 +441,7 @@ if st.session_state.page == "project":
         t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
         t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
 
-    if st.button("Save Terms"):
+    if st.button("Save Terms", key="save_terms"):
         save_terms_to_ws(ws, {
             "Terms of payment": t_payment,
             "Delivery": t_delivery,
@@ -467,6 +450,19 @@ if st.session_state.page == "project":
             "Discount": t_discount
         })
         st.success("Saved terms successfully.")
+
+    # === PDF Export ===
+    if export_pdf:
+        terms = read_terms_from_ws(ws)
+        pdf_bytes = generate_pdf(project, edited, total, discount, vat, grand_total, terms)
+        st.download_button(
+            label="⬇️ Download PDF",
+            data=pdf_bytes,
+            file_name=f"{project}_quotation.pdf",
+            mime="application/pdf"
+        )
+
+    
 # ----------------------
 # requirements.txt
 # ----------------------
@@ -502,6 +498,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
