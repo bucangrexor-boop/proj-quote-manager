@@ -314,16 +314,17 @@ if st.session_state.page == "project":
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
     try:
-        discount = ws.acell("J6").value or "0"
-        
+        discount = float(ws.acell("J6").value or 0)
+    except Exception:
+        discount = 0.0
+
     vat = total * 0.12
     grand_total = total + vat - discount
 
     st.metric("Total", f"₱{total:.2f}")
-    st.metric("Discount", f"₱{discount:.2f}")
+    st.metric("Discount", f"-₱{discount:.2f}")
     st.metric("VAT (12%)", f"₱{vat:.2f}")
     st.metric("Grand Total", f"₱{grand_total:.2f}")
-
 
     col = st.columns(3)
     with col[0]:
@@ -395,6 +396,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
