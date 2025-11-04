@@ -313,10 +313,22 @@ if st.session_state.page == "project":
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
-    vat = total * 0.12
-    grand_total = total + vat
+    try:
+        discount_str = ws.acell("J6").value or "0"
+        discount = float(discount_str.replace("%", "").strip()) / 100 if "%" in discount_str else float(discount_str)
+    except Exception:
+        discount = 0.0
+
+    discount_amount = total * discount
+    total_after_discount = total - discount_amount
+    vat = total_after_discount * 0.12
+    grand_total = total_after_discount + vat
+
+    st.metric("Total", f"₱{total:.2f}")
+    st.metric("Discount", f"-₱{discount_amount:.2f}")
     st.metric("VAT (12%)", f"₱{vat:.2f}")
     st.metric("Grand Total", f"₱{grand_total:.2f}")
+
 
     col = st.columns(3)
     with col[0]:
@@ -388,6 +400,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
