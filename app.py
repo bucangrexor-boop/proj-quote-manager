@@ -114,15 +114,7 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
             st.error(f"❌ Unexpected error while saving: {e}")
             return
 
-@st.cache_data(ttl=30)
 def df_from_worksheet(ws) -> pd.DataFrame:
-    """
-    Safely read worksheet values and return a DataFrame that always has
-    the columns defined in SHEET_HEADERS. Handles rows with more/fewer
-    cells than headers by truncating or padding with empty strings.
-    Retries on API errors and returns an empty DataFrame on failure.
-    """
-    import time
     from gspread.exceptions import APIError
 
     # Try a few times to avoid transient API failures
@@ -190,6 +182,26 @@ def df_from_worksheet(ws) -> pd.DataFrame:
     # Fallback (shouldn't reach here)
     return pd.DataFrame(columns=SHEET_HEADERS)
     
+@st.cache_data(ttl=30)
+def df_from_worksheet_cached(spreadsheet_key, worksheet_title):
+    """Fetch and process worksheet data with caching."""
+    client = get_gspread_client()
+    ss = client.open_by_key(spreadsheet_key)
+    ws = ss.worksheet(worksheet_title)
+
+    values = ws.get_all_values()
+    if not values:
+        return pd.DataFrame(columns=SHEET_HEADERS)
+    df = pd.DataFrame(values[1:], columns=values[0])
+    for col in SHEET_HEADERS:
+        if col not in df.columns:
+            df[col] = ""
+    df = df[SHEET_HEADERS]
+    df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
+    df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
+    df["Subtotal"] = df["Quantity"] * df["Unit Price"]
+    return df
+
 def safe_get_all_values(ws, retries=3, delay=2):
     for i in range(retries):
         try:
@@ -282,8 +294,6 @@ elif st.session_state.page == "create_project":
 # ----------------------
 # Project Page
 # ----------------------
-import time
-import gspread
 def get_worksheet_with_retry(ss, project, retries=3, delay=1):
     for i in range(retries):
         try:
@@ -305,7 +315,7 @@ if st.session_state.page == "project":
     # ✅ safer worksheet opening
     ws = get_worksheet_with_retry(ss, project)
 
-    df = df_from_worksheet(ws)
+    df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
     st.metric("Total", f"₱{total:.2f}")
@@ -378,6 +388,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
