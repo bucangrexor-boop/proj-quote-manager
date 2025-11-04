@@ -312,14 +312,14 @@ if st.session_state.page == "project":
         st.markdown(f"### 🧾 Project: {project}")
 
     with col2:
-        if st.button("💾 Save Items", key="save_top"):
+        if st.button("💾 Save", key="save_top"):
             ws = get_worksheet_with_retry(ss, project)
             df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
             save_df_to_worksheet(ws, df_to_save)
             st.success("Items saved to Google Sheet.")
 
     with col3:
-        if st.button("➕ Add Row", key="add_top"):
+        if st.button("➕ Row", key="add_top"):
             ws = get_worksheet_with_retry(ss, project)
             df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
             df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
@@ -423,6 +423,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
