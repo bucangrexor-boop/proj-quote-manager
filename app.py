@@ -193,7 +193,7 @@ ws = get_worksheet_with_retry(ss, project)
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
     st.header(f"Project: {project}")
-    ws = ss.worksheet(project)
+    ws = get_worksheet_with_retry(ss, project)
 
     df = df_from_worksheet(ws)
     edited = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_items")
@@ -269,5 +269,6 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
