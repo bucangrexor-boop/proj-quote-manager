@@ -34,7 +34,7 @@ TERMS_LABELS = [
     ("Delivery", "I3", "J3"),
     ("Warranty", "I4", "J4"),
     ("Price Validity", "I5", "J5"),
-    ("Discount", "I6","J6")
+    ("Discount", "I8","J8")
 ]
 
 # ----------------------
@@ -395,6 +395,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
