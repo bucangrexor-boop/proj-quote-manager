@@ -15,7 +15,7 @@ st.set_page_config(page_title="Project Quotation Manager", layout="wide")
 # Configuration
 # ----------------------
 
-GSHEETS_KEY_SECRET = "gsheets_key"
+GSHEETS_KEY_SECRET = "1jNq-fagiqmxJAzUvTjU476SORXIBTUD9E76UTx-BW14"
 GCP_SA_SECRET = "gcp_service_account"
 
 SHEET_HEADERS = [
