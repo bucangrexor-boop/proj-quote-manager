@@ -304,9 +304,34 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
 # ✅ start new block
 if st.session_state.page == "project":
     project = st.session_state.get("current_project")
-    st.header(f"Project: {project}")
 
-    # ✅ safer worksheet opening
+    # === Top header row with project title + buttons ===
+    col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+
+    with col1:
+        st.markdown(f"### 🧾 Project: {project}")
+
+    with col2:
+        if st.button("💾 Save Items", key="save_top"):
+            ws = get_worksheet_with_retry(ss, project)
+            df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+            save_df_to_worksheet(ws, df_to_save)
+            st.success("Items saved to Google Sheet.")
+
+    with col3:
+        if st.button("➕ Add Row", key="add_top"):
+            ws = get_worksheet_with_retry(ss, project)
+            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+            df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
+            save_df_to_worksheet(ws, df)
+            st.rerun()
+
+    with col4:
+        if st.button("⬅️ Back", key="back_top"):
+            st.session_state.page = "welcome"
+            st.rerun()
+
+    # ✅ safer worksheet opening (keep this below header)
     ws = get_worksheet_with_retry(ss, project)
 
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
@@ -339,18 +364,6 @@ if st.session_state.page == "project":
     st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
-
-    col = st.columns(3)
-    with col[0]:
-        if st.button("Save Items"):
-            save_df_to_worksheet(ws, edited)
-            st.success("Items saved to Google Sheet.")
-    with col[1]:
-        if st.button("Add Row"):
-            edited.loc[len(edited)] = [len(edited) + 1, "", "", 0, "", 0, 0]
-    with col[2]:
-        if st.button("Back"):
-            st.session_state.page = "welcome"
 
     st.markdown("---")
     st.subheader("Terms & Conditions")
@@ -410,6 +423,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
