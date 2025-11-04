@@ -56,7 +56,6 @@ def get_gspread_client():
 def open_spreadsheet():
     client = get_gspread_client()
     key = st.secrets[GSHEETS_KEY_SECRET]
-    st.write("🔍 Using spreadsheet key:", key)
     try:
         ss = client.open_by_key(key)
         return ss
@@ -396,6 +395,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
