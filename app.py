@@ -320,10 +320,25 @@ if st.session_state.page == "project":
     vat = total * 0.12
     grand_total = total + vat - discount
 
-    st.metric("Total", f"₱{total:.2f}")
-    st.metric("Discount", f"-₱{discount:.2f}")
-    st.metric("VAT (12%)", f"₱{vat:.2f}")
-    st.metric("Grand Total", f"₱{grand_total:.2f}")
+    st.markdown("""
+        <style>
+        .big-metric {
+            font-size: 28px;
+            font-weight: 700;
+            color: #222; /* dark text */
+        }
+        .highlight {
+            font-size: 30px;
+            font-weight: 800;
+            color: #0a8754; /* green color for emphasis */
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
 
     col = st.columns(3)
     with col[0]:
@@ -395,6 +410,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
