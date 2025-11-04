@@ -106,9 +106,11 @@ def read_terms_from_ws(ws) -> dict:
 
 
 def save_terms_to_ws(ws, terms: dict):
+    updates = []
     for label, label_cell, value_cell in TERMS_LABELS:
-        ws.update(label_cell, label)
-        ws.update(value_cell, terms.get(label, ""))
+        updates.append({"range": label_cell, "values": [[label]]})
+        updates.append({"range": value_cell, "values": [[terms.get(label, "")]]})
+    ws.batch_update([{"range": u["range"], "values": u["values"]} for u in updates])
 
 # ----------------------
 # UI Pages
@@ -248,3 +250,4 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
