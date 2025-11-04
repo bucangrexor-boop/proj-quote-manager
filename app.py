@@ -100,7 +100,7 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
     # Retry logic for stability
     for attempt in range(3):
         try:
-            ws.batch_clear(["A1:Z100"])  # safer clear — only clears first 1000 rows
+            ws.batch_clear(["A1:O100"])  # safer clear — only clears first 1000 rows
             ws.update(cell_range, values)
         except gspread.exceptions.APIError as e:
             if attempt < 2:
@@ -120,7 +120,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
     for attempt in range(3):
         try:
             # Read a bounded range to avoid huge responses; adjust "Z" if you need more cols
-            values = ws.get("A1:Z1000")
+            values = ws.get("A1:O100")
 
             # If sheet empty or no values, return empty DF with proper headers
             if not values or len(values) == 0:
@@ -382,6 +382,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
