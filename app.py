@@ -100,7 +100,7 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
     # Retry logic for stability
     for attempt in range(3):
         try:
-            ws.batch_clear(["A1:Z1000"])  # safer clear — only clears first 1000 rows
+            ws.batch_clear(["A1:Z100"])  # safer clear — only clears first 1000 rows
             ws.update(cell_range, values)
             return st.success("✅ Items saved to Google Sheet successfully!")
         except gspread.exceptions.APIError as e:
@@ -388,6 +388,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
