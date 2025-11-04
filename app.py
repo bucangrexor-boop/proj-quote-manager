@@ -186,46 +186,44 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.session_state.page = "welcome"
                 st.stop()
 
-# then replace:
-# ws = ss.worksheet(project)
-ws = get_worksheet_with_retry(ss, project)
-
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
     st.header(f"Project: {project}")
+
+    # ✅ safer worksheet opening
     ws = get_worksheet_with_retry(ss, project)
 
     df = df_from_worksheet(ws)
-    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="data_editor_items")
+    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     total = edited["Subtotal"].sum()
     st.metric("Total", f"₱{total:,.2f}")
 
     col = st.columns(3)
     with col[0]:
-        if st.button("Save Items", key="btn_save_items"):
+        if st.button("Save Items"):
             save_df_to_worksheet(ws, edited)
             st.success("Items saved to Google Sheet.")
     with col[1]:
-        if st.button("Add Row", key="btn_add_row"):
+        if st.button("Add Row"):
             edited.loc[len(edited)] = [len(edited) + 1, "", "", 0, "", 0, 0]
     with col[2]:
-        if st.button("Back", key="btn_back_from_project"):
+        if st.button("Back"):
             st.session_state.page = "welcome"
-            st.rerun()
 
     st.markdown("---")
     st.subheader("Terms & Conditions")
+
     terms = read_terms_from_ws(ws)
 
     col1, col2 = st.columns(2)
     with col1:
-        t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""), key="input_terms_payment")
-        t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""), key="input_terms_delivery")
+        t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
+        t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""))
     with col2:
-        t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""), key="input_terms_warranty")
-        t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""), key="input_terms_price_validity")
+        t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
+        t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
 
-    if st.button("Save Terms", key="btn_save_terms"):
+    if st.button("Save Terms"):
         save_terms_to_ws(ws, {
             "Terms of payment": t_payment,
             "Delivery": t_delivery,
@@ -233,7 +231,6 @@ elif st.session_state.page == "project":
             "Price Validity": t_price,
         })
         st.success("Saved terms successfully.")
-
 # ----------------------
 # requirements.txt
 # ----------------------
@@ -269,6 +266,7 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
