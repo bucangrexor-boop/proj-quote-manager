@@ -182,7 +182,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
     # Fallback (shouldn't reach here)
     return pd.DataFrame(columns=SHEET_HEADERS)
     
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=90)
 def df_from_worksheet_cached(spreadsheet_key, worksheet_title):
     """Fetch and process worksheet data with caching."""
     client = get_gspread_client()
@@ -388,6 +388,7 @@ if st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
 
 
