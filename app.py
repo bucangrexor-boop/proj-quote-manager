@@ -171,6 +171,25 @@ elif st.session_state.page == "create_project":
 # ----------------------
 # Project Page
 # ----------------------
+import time
+import gspread
+
+def get_worksheet_with_retry(ss, project, retries=3, delay=1):
+    for i in range(retries):
+        try:
+            return ss.worksheet(project)
+        except gspread.exceptions.APIError:
+            if i < retries - 1:
+                time.sleep(delay)
+            else:
+                st.error(f"Failed to open worksheet '{project}'. Please try again in a few seconds.")
+                st.session_state.page = "welcome"
+                st.stop()
+
+# then replace:
+# ws = ss.worksheet(project)
+ws = get_worksheet_with_retry(ss, project)
+
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
     st.header(f"Project: {project}")
@@ -250,4 +269,5 @@ elif st.session_state.page == "project":
 # ```
 # 4. Deploy on [Streamlit Community Cloud](https://streamlit.io/cloud).
 # 5. Run the app and manage quotations easily!
+
 
