@@ -425,7 +425,7 @@ elif st.session_state.page == "project":
     # Totals
     total = edited["Subtotal"].sum()
     try:
-        discount = float(ws.acell("J6").value or 0)
+        discount = float(ws.acell("J8").value or 0)
     except Exception:
         discount = 0.0
     vat = total * 0.12
@@ -486,6 +486,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
