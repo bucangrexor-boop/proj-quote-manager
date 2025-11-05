@@ -366,10 +366,9 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table
+     # ----------------------
+    # Main Table with Working Auto-Save (no flicker)
     # ----------------------
-    # Main Table with Auto-Save
-    # ---------------------
-
     ws = get_worksheet_with_retry(ss, project)
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
 
@@ -379,51 +378,49 @@ elif st.session_state.page == "project":
         use_container_width=True,
         key="editor_main"
     )
-    # Initialize session state
+
+    # --- Session State Init ---
     if "last_items_df" not in st.session_state:
         st.session_state.last_items_df = df.to_dict()
-    if "pending_save_time" not in st.session_state:
-        st.session_state.pending_save_time = None
+    if "last_edit_time" not in st.session_state:
+        st.session_state.last_edit_time = 0.0
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
 
-    DEBOUNCE_DELAY = 2  # seconds
+    DEBOUNCE_DELAY = 5  # seconds after last edit
 
-# Detect if there was an edit
+# --- Detect changes ---
     if edited.to_dict() != st.session_state.last_items_df:
         st.session_state.last_items_df = edited.to_dict()
-        st.session_state.pending_save_time = time.time() + DEBOUNCE_DELAY
+        st.session_state.last_edit_time = time.time()
 
-# Check if enough time has passed to save
+# --- Auto-save if delay passed ---
     if (
-        st.session_state.pending_save_time
-        and time.time() > st.session_state.pending_save_time
-        and not st.session_state.is_saving_items
+        not st.session_state.is_saving_items
+        and st.session_state.last_edit_time
+        and time.time() - st.session_state.last_edit_time > DEBOUNCE_DELAY
     ):
         st.session_state.is_saving_items = True
-        save_placeholder = st.empty()
-        with save_placeholder.container():
-            with st.spinner("💾 Auto-saving to Google Sheets..."):
-                try:
-                    values = [list(edited.columns)] + edited.values.tolist()
-                    #ws.batch_clear(["A1:G100"])  # adjust if needed
-                    ws.update("A1", values)
-                    st.toast("✅ Items auto-saved!", icon="💾")
-                except Exception as e:
-                    st.warning(f"⚠️ Auto-save failed: {e}")
-                finally:
-                    st.session_state.is_saving_items = False
-                    st.session_state.pending_save_time = None
-                    save_placeholder.empty()
+        with st.spinner("💾 Auto-saving to Google Sheets..."):
+            try:
+                values = [list(edited.columns)] + edited.values.tolist()
+                ws.update("A1", values)  # No batch_clear!
+                st.toast("✅ Items auto-saved!", icon="💾")
+            except Exception as e:
+                st.warning(f"⚠️ Auto-save failed: {e}")
+            finally:
+                st.session_state.is_saving_items = False
+                st.session_state.last_edit_time = 0.0  # reset timer
 
-# Show save indicator
+    # --- Status indicator beside project title ---
     status_placeholder = st.empty()
     if st.session_state.is_saving_items:
         status_placeholder.info("💾 Saving...")
-    elif st.session_state.pending_save_time:
+    elif time.time() - st.session_state.last_edit_time <= DEBOUNCE_DELAY and st.session_state.last_edit_time > 0:
         status_placeholder.caption("⌛ Pending auto-save...")
     else:
-        status_placeholder.caption("✅ All changes saved.")    
+        status_placeholder.caption("✅ All changes saved.")
+
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -489,6 +486,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
