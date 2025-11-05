@@ -153,7 +153,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
     return pd.DataFrame(columns=SHEET_HEADERS)
 
 
-@st.cache_data(ttl=120)
+@st.cache_data(ttl=600)
 def df_from_worksheet_cached(spreadsheet_key, worksheet_title):
     client = get_gspread_client()
     ss = client.open_by_key(spreadsheet_key)
@@ -494,6 +494,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
