@@ -387,7 +387,7 @@ elif st.session_state.page == "project":
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
 
-    DEBOUNCE_DELAY = 5  # seconds
+    DEBOUNCE_DELAY = 2  # seconds
 
 # Detect if there was an edit
     if edited.to_dict() != st.session_state.last_items_df:
@@ -489,6 +489,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
