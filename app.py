@@ -379,46 +379,51 @@ elif st.session_state.page == "project":
         use_container_width=True,
         key="editor_main"
     )
-    # Initialize session states
+    # Initialize session state
     if "last_items_df" not in st.session_state:
         st.session_state.last_items_df = df.to_dict()
-    if "last_items_save" not in st.session_state:
-        st.session_state.last_items_save = 0
+    if "pending_save_time" not in st.session_state:
+        st.session_state.pending_save_time = None
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
 
-    DEBOUNCE_DELAY = 10  # seconds
+    DEBOUNCE_DELAY = 5  # seconds
 
-    # Detect changes and auto-save with debounce
-    current_time = time.time()
+# Detect if there was an edit
     if edited.to_dict() != st.session_state.last_items_df:
-        if current_time - st.session_state.last_items_save > DEBOUNCE_DELAY:
-            st.session_state.is_saving_items = True
-            save_placeholder = st.empty()
-            with save_placeholder.container():
-                with st.spinner("💾 Saving changes to Google Sheets..."):
-                    try:
-                        # Convert DataFrame to list and update
-                        values = [list(edited.columns)] + edited.values.tolist()
-                        ws.batch_clear(["A1:G100"])  # adjust range to your data
-                        ws.update("A1", values)
+        st.session_state.last_items_df = edited.to_dict()
+        st.session_state.pending_save_time = time.time() + DEBOUNCE_DELAY
 
-                        # Update session states
-                        st.session_state.last_items_df = edited.to_dict()
-                        st.session_state.last_items_save = current_time
-                        st.toast("✅ Items auto-saved!", icon="💾")
-                    except Exception as e:
-                        st.warning(f"⚠️ Auto-save failed: {e}")
-                    finally:
-                        st.session_state.is_saving_items = False
-                        save_placeholder.empty()
+# Check if enough time has passed to save
+    if (
+        st.session_state.pending_save_time
+        and time.time() > st.session_state.pending_save_time
+        and not st.session_state.is_saving_items
+    ):
+        st.session_state.is_saving_items = True
+        save_placeholder = st.empty()
+        with save_placeholder.container():
+            with st.spinner("💾 Auto-saving to Google Sheets..."):
+                try:
+                    values = [list(edited.columns)] + edited.values.tolist()
+                    ws.batch_clear(["A1:G100"])  # adjust if needed
+                    ws.update("A1", values)
+                    st.toast("✅ Items auto-saved!", icon="💾")
+                except Exception as e:
+                    st.warning(f"⚠️ Auto-save failed: {e}")
+                finally:
+                    st.session_state.is_saving_items = False
+                    st.session_state.pending_save_time = None
+                    save_placeholder.empty()
 
-    # Visual save indicator beside project name
+# Show save indicator
     status_placeholder = st.empty()
     if st.session_state.is_saving_items:
-        status_placeholder.info("💾 Saving changes...")
+        status_placeholder.info("💾 Saving...")
+    elif st.session_state.pending_save_time:
+        status_placeholder.caption("⌛ Pending auto-save...")
     else:
-        status_placeholder.caption("✅ All changes saved.")
+        status_placeholder.caption("✅ All changes saved.")    
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -484,5 +489,6 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
