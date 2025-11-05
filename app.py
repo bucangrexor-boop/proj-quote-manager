@@ -406,7 +406,7 @@ elif st.session_state.page == "project":
             with st.spinner("💾 Auto-saving to Google Sheets..."):
                 try:
                     values = [list(edited.columns)] + edited.values.tolist()
-                    ws.batch_clear(["A1:G100"])  # adjust if needed
+                    #ws.batch_clear(["A1:G100"])  # adjust if needed
                     ws.update("A1", values)
                     st.toast("✅ Items auto-saved!", icon="💾")
                 except Exception as e:
@@ -489,6 +489,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
