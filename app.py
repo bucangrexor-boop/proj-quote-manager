@@ -366,9 +366,6 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table
-     # ----------------------
-    # Main Table with Working Auto-Save (no flicker)
-    # ----------------------
     ws = get_worksheet_with_retry(ss, project)
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
 
@@ -394,7 +391,7 @@ elif st.session_state.page == "project":
         st.session_state.last_items_df = edited.to_dict()
         st.session_state.last_edit_time = time.time()
 
-    # --- Check if time passed since last edit ---
+    # --- Check if it's time to save ---
     time_since_edit = time.time() - st.session_state.last_edit_time
     should_save = (
         st.session_state.last_edit_time > 0
@@ -416,18 +413,21 @@ elif st.session_state.page == "project":
                 st.session_state.is_saving_items = False
                 st.session_state.last_edit_time = 0.0
 
-    # --- Display status beside project name ---
+    # --- Status beside project name ---
     status_placeholder = st.empty()
     if st.session_state.is_saving_items:
         status_placeholder.info("💾 Saving...")
     elif st.session_state.last_edit_time > 0 and time_since_edit <= DEBOUNCE_DELAY:
-        status_placeholder.caption(f"⌛ Pending auto-save in {int(DEBOUNCE_DELAY - time_since_edit)}s...")
+        remaining = int(DEBOUNCE_DELAY - time_since_edit)
+        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
     else:
         status_placeholder.caption("✅ All changes saved.")
 
-    # --- Force re-check every second while pending ---
+# --- Refresh every second only while pending ---
     if st.session_state.last_edit_time > 0 and not st.session_state.is_saving_items:
-        st.experimental_rerun()
+        st_autorefresh(interval=1000, key="auto_save_refresh")
+    
+    
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -493,6 +493,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
