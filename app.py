@@ -383,10 +383,10 @@ elif st.session_state.page == "project":
             ws = get_worksheet_with_retry(ss, project)
              # use the live edited data, not cached version
             ok = save_df_to_worksheet(ws, edited)
-        if ok:
-            st.success("✅ Changes saved to Google Sheet.")
-        else:
-            st.error("❌ Save failed. Check your connection or quota.")
+            if ok:
+                st.success("✅ Changes saved to Google Sheet.")
+            else:
+                st.error("❌ Save failed. Check your connection or quota.")
 
 
     with col3:
@@ -480,5 +480,6 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
+
 
 
