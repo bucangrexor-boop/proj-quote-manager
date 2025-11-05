@@ -13,6 +13,7 @@ import time
 import pandas as pd
 import streamlit as st
 import gspread
+from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 from google.oauth2 import service_account
 from gspread.exceptions import APIError
@@ -493,6 +494,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
