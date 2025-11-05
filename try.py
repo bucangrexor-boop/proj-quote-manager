@@ -56,7 +56,7 @@ def get_gspread_client():
     if GCP_SA_SECRET not in st.secrets or GSHEETS_KEY_SECRET not in st.secrets:
         st.error("Google secrets are missing. Add 'gcp_service_account' and 'gsheets_key' in Streamlit Secrets.")
         st.stop()
-    creds_info = json.loads(st.secrets[GCP_SA_SECRET])
+    creds_info = st.secrets[GCP_SA_SECRET]
     scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     credentials = service_account.Credentials.from_service_account_info(creds_info, scopes=scopes)
     return gspread.authorize(credentials)
