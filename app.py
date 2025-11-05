@@ -342,12 +342,12 @@ elif st.session_state.page == "project":
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
 
-    with col2:
-        if st.button("💾 Save", key="save_top"):
-            ws = get_worksheet_with_retry(ss, project)
-            df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            save_df_to_worksheet(ws, df_to_save)
-            st.success("Items saved to Google Sheet.")
+    #with col2:
+        #if st.button("💾 Save", key="save_top"):
+           # ws = get_worksheet_with_retry(ss, project)
+           # df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+           # save_df_to_worksheet(ws, df_to_save)
+           # st.success("Items saved to Google Sheet.")
 
     with col3:
         if st.button("➕ Row", key="add_top"):
@@ -366,6 +366,10 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table
+    # ----------------------
+    # Main Table with Auto-Save
+    # ---------------------
+
     ws = get_worksheet_with_retry(ss, project)
     df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
 
@@ -375,6 +379,46 @@ elif st.session_state.page == "project":
         use_container_width=True,
         key="editor_main"
     )
+    # Initialize session states
+    if "last_items_df" not in st.session_state:
+        st.session_state.last_items_df = df.to_dict()
+    if "last_items_save" not in st.session_state:
+        st.session_state.last_items_save = 0
+    if "is_saving_items" not in st.session_state:
+        st.session_state.is_saving_items = False
+
+    DEBOUNCE_DELAY = 10  # seconds
+
+    # Detect changes and auto-save with debounce
+    current_time = time.time()
+    if edited.to_dict() != st.session_state.last_items_df:
+        if current_time - st.session_state.last_items_save > DEBOUNCE_DELAY:
+            st.session_state.is_saving_items = True
+            save_placeholder = st.empty()
+            with save_placeholder.container():
+                with st.spinner("💾 Saving changes to Google Sheets..."):
+                    try:
+                        # Convert DataFrame to list and update
+                        values = [list(edited.columns)] + edited.values.tolist()
+                        ws.batch_clear(["A1:G100"])  # adjust range to your data
+                        ws.update("A1", values)
+
+                        # Update session states
+                        st.session_state.last_items_df = edited.to_dict()
+                        st.session_state.last_items_save = current_time
+                        st.toast("✅ Items auto-saved!", icon="💾")
+                    except Exception as e:
+                        st.warning(f"⚠️ Auto-save failed: {e}")
+                    finally:
+                        st.session_state.is_saving_items = False
+                        save_placeholder.empty()
+
+    # Visual save indicator beside project name
+    status_placeholder = st.empty()
+    if st.session_state.is_saving_items:
+        status_placeholder.info("💾 Saving changes...")
+    else:
+        status_placeholder.caption("✅ All changes saved.")
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -440,4 +484,5 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
