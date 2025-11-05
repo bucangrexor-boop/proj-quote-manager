@@ -382,7 +382,7 @@ elif st.session_state.page == "project":
        if st.button("💾 Save", key="save_top"):
             with st.spinner("Saving changes to Google Sheets..."):
                 ws = get_worksheet_with_retry(ss, project)
-                ok = save_df_to_worksheet(ws, st.session_state.edited_df)
+                ok = save_df_to_worksheet(ws, edited)
             if ok:
                 st.success("✅ Changes saved successfully!")
                 # Clear cache to refresh data from Google Sheets
@@ -484,6 +484,7 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
+
 
 
 
