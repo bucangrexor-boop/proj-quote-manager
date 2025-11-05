@@ -381,12 +381,13 @@ elif st.session_state.page == "project":
     with col2:
         if st.button("💾 Save", key="save_top"):
             ws = get_worksheet_with_retry(ss, project)
-            df_to_save = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            ok = save_df_to_worksheet(ws, df_to_save)
-            if ok:
-                st.success("Items saved to Google Sheet.")
-            else:
-                st.error("Save failed.")
+             # use the live edited data, not cached version
+            ok = save_df_to_worksheet(ws, edited)
+        if ok:
+            st.success("✅ Changes saved to Google Sheet.")
+        else:
+            st.error("❌ Save failed. Check your connection or quota.")
+
 
     with col3:
         if st.button("➕ Row", key="add_top"):
@@ -479,4 +480,5 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
+
 
