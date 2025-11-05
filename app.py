@@ -379,7 +379,7 @@ elif st.session_state.page == "project":
         key="editor_main"
     )
 
-    # --- Session State Init ---
+    # --- Initialize session vars ---
     if "last_items_df" not in st.session_state:
         st.session_state.last_items_df = df.to_dict()
     if "last_edit_time" not in st.session_state:
@@ -389,38 +389,45 @@ elif st.session_state.page == "project":
 
     DEBOUNCE_DELAY = 5  # seconds after last edit
 
-# --- Detect changes ---
+    # --- Detect user edits ---
     if edited.to_dict() != st.session_state.last_items_df:
         st.session_state.last_items_df = edited.to_dict()
         st.session_state.last_edit_time = time.time()
 
-# --- Auto-save if delay passed ---
-    if (
-        not st.session_state.is_saving_items
-        and st.session_state.last_edit_time
-        and time.time() - st.session_state.last_edit_time > DEBOUNCE_DELAY
-    ):
+    # --- Check if time passed since last edit ---
+    time_since_edit = time.time() - st.session_state.last_edit_time
+    should_save = (
+        st.session_state.last_edit_time > 0
+        and time_since_edit > DEBOUNCE_DELAY
+        and not st.session_state.is_saving_items
+    )
+
+    # --- Trigger save if idle ---
+    if should_save:
         st.session_state.is_saving_items = True
         with st.spinner("💾 Auto-saving to Google Sheets..."):
             try:
                 values = [list(edited.columns)] + edited.values.tolist()
-                ws.update("A1", values)  # No batch_clear!
+                ws.update("A1", values)
                 st.toast("✅ Items auto-saved!", icon="💾")
             except Exception as e:
                 st.warning(f"⚠️ Auto-save failed: {e}")
             finally:
                 st.session_state.is_saving_items = False
-                st.session_state.last_edit_time = 0.0  # reset timer
+                st.session_state.last_edit_time = 0.0
 
-    # --- Status indicator beside project title ---
+    # --- Display status beside project name ---
     status_placeholder = st.empty()
     if st.session_state.is_saving_items:
         status_placeholder.info("💾 Saving...")
-    elif time.time() - st.session_state.last_edit_time <= DEBOUNCE_DELAY and st.session_state.last_edit_time > 0:
-        status_placeholder.caption("⌛ Pending auto-save...")
+    elif st.session_state.last_edit_time > 0 and time_since_edit <= DEBOUNCE_DELAY:
+        status_placeholder.caption(f"⌛ Pending auto-save in {int(DEBOUNCE_DELAY - time_since_edit)}s...")
     else:
         status_placeholder.caption("✅ All changes saved.")
 
+    # --- Force re-check every second while pending ---
+    if st.session_state.last_edit_time > 0 and not st.session_state.is_saving_items:
+        st.experimental_rerun()
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -486,6 +493,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
