@@ -97,7 +97,7 @@ def save_df_to_worksheet(ws, df: pd.DataFrame):
 
     for attempt in range(3):
         try:
-            ws.batch_clear(["A1:O100"])
+            ws.batch_clear(["A1:G100"])
             ws.update(cell_range, values)
         except gspread.exceptions.APIError as e:
             if attempt < 2:
@@ -440,3 +440,4 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
