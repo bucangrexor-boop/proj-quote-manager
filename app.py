@@ -55,7 +55,7 @@ def get_gspread_client():
     credentials = service_account.Credentials.from_service_account_info(creds_info, scopes=scopes)
     return gspread.authorize(credentials)
 
-@st.cache_resource(ttl=600)
+@st.cache_resource(ttl=90)
 def open_spreadsheet():
     client = get_gspread_client()
     key = st.secrets[GSHEETS_KEY_SECRET]
@@ -479,3 +479,4 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
+
