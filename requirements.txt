@@ -3,3 +3,4 @@ gspread
 google-auth
 pandas
 reportlab
+streamlit_autorefresh
