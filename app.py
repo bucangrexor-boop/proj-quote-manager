@@ -379,14 +379,18 @@ elif st.session_state.page == "project":
         st.markdown(f"### 🧾 Project: {project}")
 
     with col2:
-        if st.button("💾 Save", key="save_top"):
-            ws = get_worksheet_with_retry(ss, project)
-             # use the live edited data, not cached version
-            ok = save_df_to_worksheet(ws, edited)
+       if st.button("💾 Save", key="save_top"):
+            with st.spinner("Saving changes to Google Sheets..."):
+                ws = get_worksheet_with_retry(ss, project)
+                ok = save_df_to_worksheet(ws, st.session_state.edited_df)
             if ok:
-                st.success("✅ Changes saved to Google Sheet.")
+                st.success("✅ Changes saved successfully!")
+                # Clear cache to refresh data from Google Sheets
+                st.cache_data.clear()
+                time.sleep(1)
+                st.experimental_rerun()
             else:
-                st.error("❌ Save failed. Check your connection or quota.")
+                st.error("❌ Save failed. Please check your internet connection or quota.")
 
 
     with col3:
@@ -480,6 +484,7 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
+
 
 
 
