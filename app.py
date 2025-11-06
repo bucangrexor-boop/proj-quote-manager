@@ -442,14 +442,15 @@ elif st.session_state.page == "project":
         st.markdown(f"### 🧾 Project: {project}")
         
     with col2:
-        if st.button("🔄 Refresh", key="refresh_sheet"):
-            # Reload data from Google Sheets manually
-            st.session_state.project_df = df_from_worksheet(st.session_state.ws)
-            st.session_state[f"project_df_{project}"] = st.session_state.project_df.copy()
-            st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
-            st.session_state.last_edit_timestamp = 0.0
-            st.session_state.is_saving_items = False
-            st.rerun()
+    if st.button("🔄 Refresh", key="refresh_sheet"):
+        # Reload data from Google Sheets manually
+        new_df = df_from_worksheet(st.session_state.ws)
+        st.session_state.project_df = new_df
+        st.session_state[f"project_df_{project}"] = new_df.copy()
+        st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
+        st.session_state.last_edit_timestamp = 0.0
+        st.session_state.is_saving_items = False
+        st.rerun()
         
     with col3:
         if st.button("➕ Row", key="add_top"):
@@ -606,6 +607,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
