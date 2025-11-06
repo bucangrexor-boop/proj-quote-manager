@@ -456,73 +456,84 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table - unique key per project
-    edited = st.data_editor(
-        df,
-        num_rows="dynamic",
-        use_container_width=True,
-        key=f"editor_{project}"
-    )
+edited = st.data_editor(
+    df,
+    num_rows="dynamic",
+    use_container_width=True,
+    key=f"editor_{project}",
+)
 
-    # --- Session vars for debounce/save status ---
-    if "last_edit_timestamp" not in st.session_state:
-        st.session_state.last_edit_timestamp = 0.0
-    if "is_saving_items" not in st.session_state:
-        st.session_state.is_saving_items = False
+# --- Initialize session variables ---
+if "last_edit_timestamp" not in st.session_state:
+    st.session_state.last_edit_timestamp = 0.0
+if "is_saving_items" not in st.session_state:
+    st.session_state.is_saving_items = False
+if "cached_old_df" not in st.session_state:
+    st.session_state.cached_old_df = df.copy()
 
-    # --- Detect edits and update session copy ---
-    if not edited.equals(df):
-        st.session_state.project_df = edited.copy()
-        st.session_state.last_edit_timestamp = time.time()
+# --- Detect actual edits (not just cursor move) ---
+if not edited.equals(df):
+    st.session_state.project_df = edited.copy()
+    st.session_state.last_edit_timestamp = time.time()
 
-    # --- Debounce save after inactivity ---
-    INACTIVITY_DELAY = 20  # seconds; adjust to taste
-    time_since_edit = time.time() - st.session_state.last_edit_timestamp
+# --- Debounce / auto-save logic ---
+INACTIVITY_DELAY = 8  # seconds of inactivity before saving
+time_since_edit = time.time() - st.session_state.last_edit_timestamp
 
-    status_placeholder = st.empty()
-    if st.session_state.is_saving_items:
-        status_placeholder.info("💾 Saving...")
-    elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
-        remaining = int(INACTIVITY_DELAY - time_since_edit)
-        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
-    else:
-        status_placeholder.caption("✅ All changes saved.")
+status_placeholder = st.empty()
 
-    should_save = (
-        st.session_state.last_edit_timestamp > 0
-        and time_since_edit > INACTIVITY_DELAY
-        and not st.session_state.is_saving_items
-    )
+if st.session_state.is_saving_items:
+    status_placeholder.info("💾 Saving...")
+elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
+    remaining = int(INACTIVITY_DELAY - time_since_edit)
+    status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
+else:
+    status_placeholder.caption("✅ All changes saved.")
 
-    if should_save:
-        st.session_state.is_saving_items = True
-        with st.spinner("💾 Auto-saving to Google Sheets..."):
-            try:
-                old_df = df_from_worksheet(ws)  # fresh snapshot of sheet state before applying changes
-                new_df = st.session_state.project_df.copy()
+# --- Decide if we should save now ---
+should_save = (
+    st.session_state.last_edit_timestamp > 0
+    and time_since_edit > INACTIVITY_DELAY
+    and not st.session_state.is_saving_items
+)
 
-                # Ensure numeric columns maintained
-                new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
-                new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
+if should_save:
+    st.session_state.is_saving_items = True
+    with st.spinner("💾 Auto-saving to Google Sheets..."):
+        try:
+            # Use cached old_df to avoid extra API call if still valid
+            old_df = st.session_state.cached_old_df
+            new_df = st.session_state.project_df.copy()
+
+            # Clean numeric columns
+            for col in ["Quantity", "Unit Price"]:
+                if col in new_df.columns:
+                    new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0)
+
+            if "Subtotal" in new_df.columns:
                 new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
+            if "Item" in new_df.columns:
                 new_df["Item"] = [i + 1 for i in range(len(new_df))]
 
-                # If lengths differ or many changes, use apply_sheet_updates which handles diffs and append
-                apply_sheet_updates(ws, old_df, new_df)
+            # Update only changed parts
+            apply_sheet_updates(ws, old_df, new_df)
 
-                st.toast("✅ Items auto-saved!", icon="💾")
+            # Update cache and reset timers
+            st.session_state.cached_old_df = new_df.copy()
+            st.session_state.last_edit_timestamp = 0.0
+            st.toast("✅ Items auto-saved!", icon="💾")
+
+        except Exception as e:
+            st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
+            try:
+                save_df_to_worksheet(ws, st.session_state.project_df)
+                st.success("✅ Items saved via fallback full-write.")
+                st.session_state.cached_old_df = st.session_state.project_df.copy()
                 st.session_state.last_edit_timestamp = 0.0
-            except Exception as e:
-                # If diff-save fails for any reason, fall back to full rewrite (with retry attempts)
-                st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
-
-                try:
-                    save_df_to_worksheet(ws, st.session_state.project_df)
-                    st.success("✅ Items saved via fallback full-write.")
-                    st.session_state.last_edit_timestamp = 0.0
-                except Exception as e2:
-                    st.error(f"❌ Full rewrite also failed: {e2}")
-            finally:
-                st.session_state.is_saving_items = False
+            except Exception as e2:
+                st.error(f"❌ Full rewrite also failed: {e2}")
+        finally:
+            st.session_state.is_saving_items = False
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -588,3 +599,4 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
