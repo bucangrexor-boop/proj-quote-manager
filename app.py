@@ -456,85 +456,85 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table - unique key per project
-    if f"project_df_{project}" not in st.session_state:
-        st.session_state[f"project_df_{project}"] = df.copy()
-    df = st.session_state[f"project_df_{project}"]
-        
+    if f"working_df_{project}" not in st.session_state:
+        st.session_state[f"working_df_{project}"] = df.copy()   # first load from Sheets
+    df = st.session_state[f"working_df_{project}"]               # use working copy only
+
+# ---------- Editable table ----------
     edited = st.data_editor(
         df,
         num_rows="dynamic",
         use_container_width=True,
         key=f"editor_{project}",
-    )
+        )
 
-# --- Initialize session variables ---
+# ---------- Session flags ----------
     if "last_edit_timestamp" not in st.session_state:
         st.session_state.last_edit_timestamp = 0.0
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
-    if "cached_old_df" not in st.session_state:
-        st.session_state.cached_old_df = df.copy()
+    if "cached_sheet_df" not in st.session_state:
+        st.session_state.cached_sheet_df = df.copy()
 
-# --- Detect actual edits (not just cursor move) ---
-    if not edited.equals(st.session_state[f"project_df_{project}"]):
-        st.session_state[f"project_df_{project}"] = edited.copy()
+# ---------- Detect edit ----------
+    if not edited.equals(df):
+    # keep latest table immediately so reruns never revert it
+        st.session_state[f"working_df_{project}"] = edited.copy()
         st.session_state.project_df = edited.copy()
         st.session_state.last_edit_timestamp = time.time()
 
-# --- Debounce / auto-save logic ---
-    INACTIVITY_DELAY = 8  # seconds of inactivity before saving
-    time_since_edit = time.time() - st.session_state.last_edit_timestamp
-
-    status_placeholder = st.empty()
+# ---------- Debounce status ----------
+    INACTIVITY_DELAY = 8
+    time_since = time.time() - st.session_state.last_edit_timestamp
+    status = st.empty()
 
     if st.session_state.is_saving_items:
-        status_placeholder.info("💾 Saving...")
-    elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
-        remaining = int(INACTIVITY_DELAY - time_since_edit)
-        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
+        status.info("💾 Saving...")
+    elif st.session_state.last_edit_timestamp > 0 and time_since <= INACTIVITY_DELAY:
+        status.caption(f"⌛ Pending auto-save in {int(INACTIVITY_DELAY - time_since)} s...")
     else:
-        status_placeholder.caption("✅ All changes saved.")
+        status.caption("✅ All changes saved.")
 
-# --- Decide if we should save now ---
+# ---------- Auto-save trigger ----------
     should_save = (
         st.session_state.last_edit_timestamp > 0
-        and time_since_edit > INACTIVITY_DELAY
+        and time_since > INACTIVITY_DELAY
         and not st.session_state.is_saving_items
-    )
+)
 
     if should_save:
         st.session_state.is_saving_items = True
         with st.spinner("💾 Auto-saving to Google Sheets..."):
             try:
-            # Use cached old_df to avoid extra API call if still valid
-                old_df = st.session_state.cached_old_df
                 new_df = st.session_state.project_df.copy()
+                old_df = st.session_state.cached_sheet_df
 
-            # Clean numeric columns
+            # numeric cleanup
                 for col in ["Quantity", "Unit Price"]:
                     if col in new_df.columns:
                         new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0)
-
                 if "Subtotal" in new_df.columns:
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                 if "Item" in new_df.columns:
                     new_df["Item"] = [i + 1 for i in range(len(new_df))]
 
-            # Update only changed parts
+            # write only once per batch
                 apply_sheet_updates(ws, old_df, new_df)
 
-            # Update cache and reset timers
-                st.session_state.cached_old_df = new_df.copy()
+            # update caches so next save diff is correct
+                st.session_state.cached_sheet_df = new_df.copy()
+                st.session_state[f"working_df_{project}"] = new_df.copy()
                 st.session_state.last_edit_timestamp = 0.0
                 st.toast("✅ Items auto-saved!", icon="💾")
 
             except Exception as e:
-                st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
+                st.warning(f"⚠️ Auto-save failed: {e}. Trying full rewrite...")
                 try:
                     save_df_to_worksheet(ws, st.session_state.project_df)
-                    st.success("✅ Items saved via fallback full-write.")
-                    st.session_state.cached_old_df = st.session_state.project_df.copy()
+                    st.session_state.cached_sheet_df = st.session_state.project_df.copy()
+                    st.session_state[f"working_df_{project}"] = st.session_state.project_df.copy()
                     st.session_state.last_edit_timestamp = 0.0
+                    st.success("✅ Saved with full rewrite.")
                 except Exception as e2:
                     st.error(f"❌ Full rewrite also failed: {e2}")
             finally:
@@ -604,6 +604,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
