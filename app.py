@@ -483,67 +483,46 @@ elif st.session_state.page == "project":
     current_df = st.session_state[f"project_df_{project}"]
 
 # --- Display editable table ---
-    edited = st.data_editor(
-        st.session_state.project_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        key=f"editor_{project}"
+edited = st.data_editor(
+    st.session_state.project_df,
+    num_rows="dynamic",
+    use_container_width=True,
+    key=f"editor_{project}"
 )
 
-# --- Detect edits & update live session copy immediately ---
-    if not edited.equals(st.session_state.project_df):
-        st.session_state.project_df = edited.copy()
-        st.session_state[f"project_df_{project}"] = edited.copy()
-        st.session_state.last_edit_timestamp = time.time()
+# --- Detect edits & mark unsaved changes ---
+if not edited.equals(st.session_state.project_df):
+    st.session_state.project_df = edited.copy()
+    st.session_state[f"project_df_{project}"] = edited.copy()
+    st.session_state.unsaved_changes = True  # ⚠️ mark unsaved edits
 
-# --- Inactivity timer for auto-save ---
-    INACTIVITY_DELAY = 20  # seconds
-    time_since_edit = time.time() - st.session_state.last_edit_timestamp
+# --- Show unsaved changes warning ---
+if st.session_state.get("unsaved_changes", False):
+    st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
-    status_placeholder = st.empty()
-    if st.session_state.is_saving_items:
-        status_placeholder.info("💾 Saving...")
-    elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
-        remaining = int(INACTIVITY_DELAY - time_since_edit)
-        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
-    else:
-        status_placeholder.caption("✅ All changes saved.")
-
-# --- Trigger save only after full inactivity ---
-    should_save = (
-        st.session_state.last_edit_timestamp > 0
-        and time_since_edit > INACTIVITY_DELAY
-        and not st.session_state.is_saving_items
-)
-
-    if should_save:
-        st.session_state.is_saving_items = True
-        with st.spinner("💾 Auto-saving to Google Sheets..."):
+# --- Save button (manual batch save) ---
+save_col1, save_col2 = st.columns([5, 1])
+with save_col2:
+    if st.button("💾 Save Changes", key="save_changes"):
+        with st.spinner("Saving changes to Google Sheets..."):
             try:
-                old_df = df_from_worksheet(ws)
                 new_df = st.session_state[f"project_df_{project}"].copy()
+                old_df = df_from_worksheet(ws)
 
-            # Ensure numeric and calculated columns are consistent
+                # Recalculate numeric columns and totals
                 new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
                 new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
                 new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                 new_df["Item"] = [i + 1 for i in range(len(new_df))]
 
-            # Diff-based save (only changed rows)
+                # Apply only changed rows (batch update)
                 apply_sheet_updates(ws, old_df, new_df)
-    
-                st.toast("✅ Items auto-saved!", icon="💾")
-                st.session_state.last_edit_timestamp = 0.0
+
+                st.toast("✅ Changes saved to Google Sheets!", icon="💾")
+                st.session_state.unsaved_changes = False  # 🧠 mark clean state
             except Exception as e:
-                st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
-                try:
-                    save_df_to_worksheet(ws, new_df)
-                    st.success("✅ Items saved via fallback full-write.")
-                    st.session_state.last_edit_timestamp = 0.0
-                except Exception as e2:
-                    st.error(f"❌ Full rewrite also failed: {e2}")
-            finally:
-                st.session_state.is_saving_items = False
+                st.error(f"❌ Failed to save changes: {e}")
+
 
     # Totals
     total = edited["Subtotal"].sum()
@@ -609,6 +588,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
