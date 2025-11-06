@@ -420,25 +420,35 @@ elif st.session_state.page == "create_project":
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
-    # --- Load worksheet once per session/project ---
+    
     if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
         st.session_state.ws = get_worksheet_with_retry(ss, project)
         st.session_state.ws_project = project
 
     ws = st.session_state.ws
 
-    # --- Load dataframe once per session/project ---
+# --- Load dataframe only ONCE per project (or when manually refreshed) ---
     if "project_df" not in st.session_state or st.session_state.get("project_df_project") != project:
         st.session_state.project_df = df_from_worksheet(ws)
         st.session_state.project_df_project = project
-
-    df = st.session_state.project_df.copy()
+        st.session_state.last_edit_timestamp = 0.0
+        st.session_state.is_saving_items = False
 
     # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
-
+        
+    with col2:
+        if st.button("🔄 Refresh", key="refresh_sheet"):
+            # Reload data from Google Sheets manually
+            st.session_state.project_df = df_from_worksheet(st.session_state.ws)
+            st.session_state[f"project_df_{project}"] = st.session_state.project_df.copy()
+            st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
+            st.session_state.last_edit_timestamp = 0.0
+            st.session_state.is_saving_items = False
+            st.rerun()
+        
     with col3:
         if st.button("➕ Row", key="add_top"):
             # Add row locally, will be saved after debounce
@@ -594,6 +604,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
