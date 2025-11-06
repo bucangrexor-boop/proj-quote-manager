@@ -366,7 +366,9 @@ st.title("📋 Project Quotation Manager")
 if "page" not in st.session_state:
     st.session_state.page = "welcome"
 
-ss = open_spreadsheet()
+if "spreadsheet" not in st.session_state:
+    st.session_state.spreadsheet = open_spreadsheet()
+ss = st.session_state.spreadsheet
 
 # ----------------------
 # Welcome Page
@@ -604,6 +606,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
