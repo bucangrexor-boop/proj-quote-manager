@@ -1,6 +1,7 @@
+
 # ===============================================================
 # Streamlit Project Quotation Manager 
-# File: app.py (Optimized Auto-Save)
+# File: app.py
 # ===============================================================
 
 # ----------------------
@@ -13,7 +14,6 @@ import time
 import pandas as pd
 import streamlit as st
 import gspread
-from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 from google.oauth2 import service_account
 from gspread.exceptions import APIError
@@ -205,16 +205,98 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.session_state.page = "welcome"
                 st.stop()
 
-# ===============================================================
-# PDF Generator (unchanged)
-# ===============================================================
 
+# ===============================================================
+# Smart sheet update: only update changed rows (and append new)
+# ===============================================================
+def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
+    """
+    Update only rows that changed from old_df -> new_df.
+    old_df/new_df are expected to have the same column order as SHEET_HEADERS.
+    This function will:
+     - Update each contiguous block of changed rows (A{start}:G{end}) with their new values.
+     - If rows were appended, append them.
+    """
+    import gspread
+
+    # Normalize data to strings for sheet update (gspread expects strings/numbers)
+    old = old_df.fillna("").astype(str).reset_index(drop=True)
+    new = new_df.fillna("").astype(str).reset_index(drop=True)
+
+    old_len = len(old)
+    new_len = len(new)
+
+    # If sheet was empty before, do a full write (header + all rows)
+    if old_len == 0 and new_len > 0:
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
+        ws.batch_clear(["A1:G100"])
+        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+        return
+
+    # Find differing row indices up to min length
+    min_len = min(old_len, new_len)
+    changed = [i for i in range(min_len) if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])]
+
+    # If there are changed rows within existing range, group contiguous blocks
+    def contiguous_blocks(indices):
+        if not indices:
+            return []
+        blocks = []
+        start = indices[0]
+        end = start
+        for idx in indices[1:]:
+            if idx == end + 1:
+                end = idx
+            else:
+                blocks.append((start, end))
+                start = idx
+                end = idx
+        blocks.append((start, end))
+        return blocks
+
+    blocks = contiguous_blocks(changed)
+
+    for (start_idx, end_idx) in blocks:
+        # sheet rows are offset by 2 (header at row 1)
+        sheet_start_row = start_idx + 2
+        sheet_end_row = end_idx + 2
+        block = new.loc[start_idx:end_idx, SHEET_HEADERS]
+        # Prepare values (no header)
+        values = block.values.tolist()
+        a1_start = f"A{sheet_start_row}"
+        a1_end = f"{gspread.utils.rowcol_to_a1(sheet_end_row, len(SHEET_HEADERS))}"
+        rng = f"{a1_start}:{a1_end}"
+        ws.update(rng, values)
+
+    # Handle appended rows
+    if new_len > old_len:
+        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS]
+        if len(append_block) > 0:
+            start_row = old_len + 2  # +2 because header row + 1-index
+            end_row = new_len + 1
+            values = append_block.values.tolist()
+            a1_start = f"A{start_row}"
+            a1_end = f"{gspread.utils.rowcol_to_a1(end_row, len(SHEET_HEADERS))}"
+            rng = f"{a1_start}:{a1_end}"
+            ws.update(rng, values)
+
+    # If new_len < old_len (rows deleted), easiest and safest fallback is to rewrite whole sheet
+    if new_len < old_len:
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
+        ws.batch_clear(["A1:G100"])
+        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+
+
+# ===============================================================
+# PDF Generator
+# ===============================================================
 def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-aa43-48230c6c1bf2.jpeg"):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=40, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
+    # Header
     try:
         logo = Image(logo_path, width=1.3 * inch, height=1.3 * inch)
     except Exception:
@@ -229,6 +311,7 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     header_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     elements += [header_table, Spacer(1, 15), title, Spacer(1, 15)]
 
+    # Table
     data = [list(df.columns)] + df.values.tolist()
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
@@ -238,6 +321,7 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     ]))
     elements += [table, Spacer(1, 15)]
 
+    # Totals
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
@@ -253,6 +337,7 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     ]))
     elements += [total_table, Spacer(1, 20)]
 
+    # Terms
     elements.append(Paragraph("<b>TERMS & CONDITIONS</b>", styles["Heading4"]))
     for key, value in terms.items():
         elements += [Paragraph(f"<b>{key}:</b> {value}", styles["Normal"]), Spacer(1, 4)]
@@ -270,6 +355,7 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
 
 # ===============================================================
 # UI Pages
@@ -329,21 +415,36 @@ elif st.session_state.page == "create_project":
         st.rerun()
 
 # ----------------------
-# Project Page
+# Project Page (Optimized)
 # ----------------------
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
+    # --- Load worksheet once per session/project ---
+    if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
+        st.session_state.ws = get_worksheet_with_retry(ss, project)
+        st.session_state.ws_project = project
+
+    ws = st.session_state.ws
+
+    # --- Load dataframe once per session/project ---
+    if "project_df" not in st.session_state or st.session_state.get("project_df_project") != project:
+        st.session_state.project_df = df_from_worksheet(ws)
+        st.session_state.project_df_project = project
+
+    df = st.session_state.project_df.copy()
+
+    # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
 
     with col3:
         if st.button("➕ Row", key="add_top"):
-            ws = get_worksheet_with_retry(ss, project)
-            df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
-            df.loc[len(df)] = [len(df) + 1, "", "", 0, "", 0, 0]
-            save_df_to_worksheet(ws, df)
+            # Add row locally, will be saved after debounce
+            new_row = pd.Series([len(df) + 1, "", "", 0, "", 0, 0], index=SHEET_HEADERS)
+            df = df.append(new_row, ignore_index=True)
+            st.session_state.project_df = df
             st.rerun()
 
     with col4:
@@ -354,70 +455,136 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    ws = get_worksheet_with_retry(ss, project)
-    df = df_from_worksheet_cached(st.secrets[GSHEETS_KEY_SECRET], project)
+    # Main Table - unique key per project
+    edited = st.data_editor(
+        df,
+        num_rows="dynamic",
+        use_container_width=True,
+        key=f"editor_{project}"
+    )
 
-    edited = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="editor_main")
-
-    # ------------------ Auto-Save Optimized ------------------
-    if "last_items_df" not in st.session_state:
-        st.session_state.last_items_df = df.to_dict()
-    if "last_edit_time" not in st.session_state:
-        st.session_state.last_edit_time = 0.0
+    # --- Session vars for debounce/save status ---
+    if "last_edit_timestamp" not in st.session_state:
+        st.session_state.last_edit_timestamp = 0.0
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
-    if "unsaved_changes" not in st.session_state:
-        st.session_state.unsaved_changes = False
 
-    if edited.to_dict() != st.session_state.last_items_df:
-        st.session_state.last_items_df = edited.to_dict()
-        st.session_state.last_edit_time = time.time()
-        st.session_state.unsaved_changes = True
+    # --- Detect edits and update session copy ---
+    if not edited.equals(df):
+        st.session_state.project_df = edited.copy()
+        st.session_state.last_edit_timestamp = time.time()
 
-    DEBOUNCE_DELAY = 15
-    time_since_edit = time.time() - st.session_state.last_edit_time
+    # --- Debounce save after inactivity ---
+    INACTIVITY_DELAY = 20  # seconds; adjust to taste
+    time_since_edit = time.time() - st.session_state.last_edit_timestamp
+
+    status_placeholder = st.empty()
+    if st.session_state.is_saving_items:
+        status_placeholder.info("💾 Saving...")
+    elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
+        remaining = int(INACTIVITY_DELAY - time_since_edit)
+        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
+    else:
+        status_placeholder.caption("✅ All changes saved.")
+
     should_save = (
-        st.session_state.unsaved_changes
-        and time_since_edit > DEBOUNCE_DELAY
+        st.session_state.last_edit_timestamp > 0
+        and time_since_edit > INACTIVITY_DELAY
         and not st.session_state.is_saving_items
     )
 
     if should_save:
         st.session_state.is_saving_items = True
-        st.session_state.unsaved_changes = False
         with st.spinner("💾 Auto-saving to Google Sheets..."):
             try:
-                old_df = df_from_worksheet(ws)
-                diffs = edited.compare(old_df, keep_shape=True, keep_equal=False)
-                changed_rows = list(set(diffs.index.get_level_values(0)))
-                batch_data = []
+                old_df = df_from_worksheet(ws)  # fresh snapshot of sheet state before applying changes
+                new_df = st.session_state.project_df.copy()
 
-                if changed_rows:
-                    for r in changed_rows:
-                        row_data = edited.iloc[r].tolist()
-                        row_num = r + 2
-                        batch_data.append({"range": f"A{row_num}:G{row_num}", "values": [row_data]})
-                    ws.batch_update(batch_data)
-                    st.toast(f"✅ Saved {len(changed_rows)} row(s).", icon="💾")
-                else:
-                    st.toast("✅ No changes detected.", icon="💾")
+                # Ensure numeric columns maintained
+                new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
+                new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
+                new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
+                new_df["Item"] = [i + 1 for i in range(len(new_df))]
+
+                # If lengths differ or many changes, use apply_sheet_updates which handles diffs and append
+                apply_sheet_updates(ws, old_df, new_df)
+
+                st.toast("✅ Items auto-saved!", icon="💾")
+                st.session_state.last_edit_timestamp = 0.0
             except Exception as e:
-                st.warning(f"⚠️ Auto-save failed: {e}")
+                # If diff-save fails for any reason, fall back to full rewrite (with retry attempts)
+                st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
+
+                try:
+                    save_df_to_worksheet(ws, st.session_state.project_df)
+                    st.success("✅ Items saved via fallback full-write.")
+                    st.session_state.last_edit_timestamp = 0.0
+                except Exception as e2:
+                    st.error(f"❌ Full rewrite also failed: {e2}")
             finally:
                 st.session_state.is_saving_items = False
-                st.session_state.last_edit_time = 0.0
 
-    status_placeholder = st.empty()
-    if st.session_state.is_saving_items:
-        status_placeholder.info("💾 Saving...")
-    elif st.session_state.last_edit_time > 0 and time_since_edit <= DEBOUNCE_DELAY:
-        remaining = int(DEBOUNCE_DELAY - time_since_edit)
-        status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
-    else:
-        status_placeholder.caption("✅ All changes saved.")
+    # Totals
+    total = edited["Subtotal"].sum()
+    try:
+        discount = float(ws.acell("J8").value or 0)
+    except Exception:
+        discount = 0.0
+    vat = total * 0.12
+    grand_total = total + vat - discount
 
-    if st.session_state.last_edit_time > 0 and not st.session_state.is_saving_items:
-        st_autorefresh(interval=1000, key="auto_save_refresh")
+    st.markdown("""
+        <style>
+        .big-metric { font-size: 28px; font-weight: 700; color: #222; }
+        .highlight { font-size: 30px; font-weight: 800; color: #0a8754; }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # ----------------------
-# End of file
+    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
+
+    # Terms & Conditions
+    st.markdown("---")
+    st.subheader("Terms & Conditions")
+
+    terms = read_terms_from_ws(ws)
+    col1, col2 = st.columns(2)
+    with col1:
+        t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
+        t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""))
+        t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
+    with col2:
+        t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
+        t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
+
+    if st.button("Save Terms", key="save_terms"):
+        save_terms_to_ws(ws, {
+            "Terms of payment": t_payment,
+            "Delivery": t_delivery,
+            "Warranty": t_warranty,
+            "Price Validity": t_price,
+            "Discount": t_discount
+        })
+        st.success("Saved terms successfully.")
+
+    if export_pdf:
+        terms = read_terms_from_ws(ws)
+        totals = {
+            "subtotal": total,
+            "discount": discount,
+            "vat": vat,
+            "total": grand_total
+        }
+        pdf_buffer = generate_pdf(project, edited, totals, terms)
+        st.download_button(
+            label="⬇️ Download Price Quote PDF",
+            data=pdf_buffer,
+            file_name=f"{project}_quotation.pdf",
+            mime="application/pdf"
+        )
+
+# ===============================================================
+# End of File
+# ===============================================================
