@@ -456,6 +456,11 @@ elif st.session_state.page == "project":
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # Main Table - unique key per project
+    if f"project_df_{project}" not in st.session_state:
+        st.session_state[f"project_df_{project}"] = df.copy()
+    else:
+        df = st.session_state[f"project_df_{project}"]
+        
     edited = st.data_editor(
         df,
         num_rows="dynamic",
@@ -473,6 +478,7 @@ elif st.session_state.page == "project":
 
 # --- Detect actual edits (not just cursor move) ---
     if not edited.equals(df):
+        st.session_state[f"project_df_{project}"] = edited.copy()
         st.session_state.project_df = edited.copy()
         st.session_state.last_edit_timestamp = time.time()
 
@@ -599,5 +605,6 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
