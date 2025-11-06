@@ -443,7 +443,7 @@ elif st.session_state.page == "project":
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
 
-      with col2:
+    with col2:
         if st.button("🔄 Refresh", key="refresh_sheet"):
             # Manually reload data from Google Sheets
             new_df = df_from_worksheet(ws)
@@ -609,6 +609,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
