@@ -469,14 +469,15 @@ elif st.session_state.page == "project":
 
 # --- Display editable table ---
     edited = st.data_editor(
-        current_df,
+        st.session_state.project_df,
         num_rows="dynamic",
         use_container_width=True,
         key=f"editor_{project}"
 )
 
 # --- Detect edits & update live session copy immediately ---
-    if not edited.equals(current_df):
+    if not edited.equals(st.session_state.project_df):
+        st.session_state.project_df = edited.copy()
         st.session_state[f"project_df_{project}"] = edited.copy()
         st.session_state.last_edit_timestamp = time.time()
 
@@ -593,6 +594,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
