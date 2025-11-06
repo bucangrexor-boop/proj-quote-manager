@@ -429,29 +429,31 @@ elif st.session_state.page == "project":
 
     ws = st.session_state.ws
 
-# --- Load dataframe only ONCE per project (or when manually refreshed) ---
+# --- Load data only once per project ---
     if "project_df" not in st.session_state or st.session_state.get("project_df_project") != project:
         st.session_state.project_df = df_from_worksheet(ws)
         st.session_state.project_df_project = project
         st.session_state.last_edit_timestamp = 0.0
         st.session_state.is_saving_items = False
+    
+    df = st.session_state.project_df  # Always use this copy for display/edit
 
-    # Header Buttons
+# --- Header Buttons ---
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
-        
-    with col2:
+
+      with col2:
         if st.button("🔄 Refresh", key="refresh_sheet"):
-        # Reload data from Google Sheets manually
-            st.session_state[f"project_df_{project}"] = df.copy()
-            st.session_state.project_df = new_df
+            # Manually reload data from Google Sheets
+            new_df = df_from_worksheet(ws)
+            st.session_state.project_df = new_df.copy()
             st.session_state[f"project_df_{project}"] = new_df.copy()
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
             st.session_state.last_edit_timestamp = 0.0
             st.session_state.is_saving_items = False
             st.rerun()
-        
+    
     with col3:
         if st.button("➕ Row", key="add_top"):
             # Add row locally, will be saved after debounce
@@ -607,6 +609,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
