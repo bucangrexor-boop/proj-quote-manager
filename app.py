@@ -444,7 +444,7 @@ elif st.session_state.page == "project":
     with col2:
         if st.button("🔄 Refresh", key="refresh_sheet"):
         # Reload data from Google Sheets manually
-            new_df = df_from_worksheet(st.session_state.ws)
+            st.session_state[f"project_df_{project}"] = df.copy()
             st.session_state.project_df = new_df
             st.session_state[f"project_df_{project}"] = new_df.copy()
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
@@ -607,6 +607,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
