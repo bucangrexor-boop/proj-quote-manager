@@ -415,15 +415,13 @@ elif st.session_state.page == "create_project":
         st.rerun()
 
 # ----------------------
-# Project Page (Optimized with logs)
+# Project Page (Optimized)
 # ----------------------
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
-    st.markdown(f"### 🧾 Project: {project}")
 
     # --- Load worksheet once per session/project ---
     if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
-        st.write("🔄 Loading worksheet for project:", project)
         st.session_state.ws = get_worksheet_with_retry(ss, project)
         st.session_state.ws_project = project
 
@@ -431,22 +429,22 @@ elif st.session_state.page == "project":
 
     # --- Load dataframe once per session/project ---
     if "project_df" not in st.session_state or st.session_state.get("project_df_project") != project:
-        st.write("📄 Loading initial DataFrame from Google Sheets...")
         st.session_state.project_df = df_from_worksheet(ws)
         st.session_state.project_df_project = project
 
     df = st.session_state.project_df.copy()
 
-    # --- Setup header buttons ---
+    # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
+    with col1:
+        st.markdown(f"### 🧾 Project: {project}")
+
     with col3:
         if st.button("➕ Row", key="add_top"):
-            st.write("🟢 Adding new row locally...")
+            # Add row locally, will be saved after debounce
             new_row = pd.Series([len(df) + 1, "", "", 0, "", 0, 0], index=SHEET_HEADERS)
-            df = pd.concat([df, new_row.to_frame().T], ignore_index=True)
+            df = df.append(new_row, ignore_index=True)
             st.session_state.project_df = df
-            st.session_state[f"project_df_{project}"] = df.copy()
-            st.session_state.last_edit_timestamp = time.time()
             st.rerun()
 
     with col4:
@@ -457,85 +455,81 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    # --- Initialize session states ---
+    # Main Table - unique key per project
+    # --- Initialize session data if not present ---
     if f"project_df_{project}" not in st.session_state:
         st.session_state[f"project_df_{project}"] = df.copy()
     if "last_edit_timestamp" not in st.session_state:
         st.session_state.last_edit_timestamp = 0.0
     if "is_saving_items" not in st.session_state:
         st.session_state.is_saving_items = False
+    
+# --- Always work on the session copy ---
+    current_df = st.session_state[f"project_df_{project}"]
 
-    # --- Display editable table ---
-    st.write("📝 Displaying editable table...")
+# --- Display editable table ---
     edited = st.data_editor(
-        st.session_state[f"project_df_{project}"],
+        current_df,
         num_rows="dynamic",
-        width="stretch",
+        use_container_width=True,
         key=f"editor_{project}"
-    )
+)
 
-    # --- Detect edits safely ---
-    if not edited.equals(st.session_state[f"project_df_{project}"]):
-        st.write("✏️ Detected change in DataFrame!")
+# --- Detect edits & update live session copy immediately ---
+    if not edited.equals(current_df):
         st.session_state[f"project_df_{project}"] = edited.copy()
-        st.session_state.project_df = edited.copy()
         st.session_state.last_edit_timestamp = time.time()
-    else:
-        st.write("⏸️ No change detected in editor.")
 
-    # --- Inactivity timer ---
+# --- Inactivity timer for auto-save ---
     INACTIVITY_DELAY = 20  # seconds
     time_since_edit = time.time() - st.session_state.last_edit_timestamp
-    status_placeholder = st.empty()
 
+    status_placeholder = st.empty()
     if st.session_state.is_saving_items:
         status_placeholder.info("💾 Saving...")
     elif st.session_state.last_edit_timestamp > 0 and time_since_edit <= INACTIVITY_DELAY:
         remaining = int(INACTIVITY_DELAY - time_since_edit)
         status_placeholder.caption(f"⌛ Pending auto-save in {remaining}s...")
-        st.write(f"⌛ Waiting... last edit was {time_since_edit:.1f}s ago")
-    elif st.session_state.last_edit_timestamp == 0:
-        status_placeholder.caption("✅ All changes saved.")
     else:
-        status_placeholder.caption("✅ Idle.")
+        status_placeholder.caption("✅ All changes saved.")
 
-    # --- Save trigger logic ---
+# --- Trigger save only after full inactivity ---
     should_save = (
         st.session_state.last_edit_timestamp > 0
         and time_since_edit > INACTIVITY_DELAY
         and not st.session_state.is_saving_items
-    )
+)
 
-    # --- Perform save ---
     if should_save:
         st.session_state.is_saving_items = True
-        st.write("💾 Triggering auto-save now!")
         with st.spinner("💾 Auto-saving to Google Sheets..."):
             try:
+                old_df = df_from_worksheet(ws)
                 new_df = st.session_state[f"project_df_{project}"].copy()
 
-                # Ensure numeric + subtotal logic
+            # Ensure numeric and calculated columns are consistent
                 new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
                 new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
                 new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                 new_df["Item"] = [i + 1 for i in range(len(new_df))]
 
-                st.write("🧮 Calculated subtotals, updating sheet...")
-                values = [list(new_df.columns)] + new_df.astype(str).values.tolist()
-                ws.update(range_name="A1", values=values)
-
+            # Diff-based save (only changed rows)
+                apply_sheet_updates(ws, old_df, new_df)
+    
                 st.toast("✅ Items auto-saved!", icon="💾")
-                st.write("✅ Auto-save successful, resetting timer.")
                 st.session_state.last_edit_timestamp = 0.0
-
             except Exception as e:
-                st.warning(f"⚠️ Auto-save failed: {e}")
-                st.write("❌ Exception detail:", e)
-
+                st.warning(f"⚠️ Auto-save failed (diff approach): {e}. Attempting full rewrite...")
+                try:
+                    save_df_to_worksheet(ws, new_df)
+                    st.success("✅ Items saved via fallback full-write.")
+                    st.session_state.last_edit_timestamp = 0.0
+                except Exception as e2:
+                    st.error(f"❌ Full rewrite also failed: {e2}")
             finally:
                 st.session_state.is_saving_items = False
 
-    # --- Totals and terms remain unchanged ---
+    # Totals
     total = edited["Subtotal"].sum()
     try:
         discount = float(ws.acell("J8").value or 0)
@@ -544,14 +538,61 @@ elif st.session_state.page == "project":
     vat = total * 0.12
     grand_total = total + vat - discount
 
-    st.markdown(f"### 💰 Grand Total: ₱{grand_total:,.2f}")
+    st.markdown("""
+        <style>
+        .big-metric { font-size: 28px; font-weight: 700; color: #222; }
+        .highlight { font-size: 30px; font-weight: 800; color: #0a8754; }
+        </style>
+    """, unsafe_allow_html=True)
 
+    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
+
+    # Terms & Conditions
+    st.markdown("---")
+    st.subheader("Terms & Conditions")
+
+    terms = read_terms_from_ws(ws)
+    col1, col2 = st.columns(2)
+    with col1:
+        t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
+        t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""))
+        t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
+    with col2:
+        t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
+        t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
+
+    if st.button("Save Terms", key="save_terms"):
+        save_terms_to_ws(ws, {
+            "Terms of payment": t_payment,
+            "Delivery": t_delivery,
+            "Warranty": t_warranty,
+            "Price Validity": t_price,
+            "Discount": t_discount
+        })
+        st.success("Saved terms successfully.")
+
+    if export_pdf:
+        terms = read_terms_from_ws(ws)
+        totals = {
+            "subtotal": total,
+            "discount": discount,
+            "vat": vat,
+            "total": grand_total
+        }
+        pdf_buffer = generate_pdf(project, edited, totals, terms)
+        st.download_button(
+            label="⬇️ Download Price Quote PDF",
+            data=pdf_buffer,
+            file_name=f"{project}_quotation.pdf",
+            mime="application/pdf"
+        )
 
 # ===============================================================
 # End of File
 # ===============================================================
-
-
 
 
 
