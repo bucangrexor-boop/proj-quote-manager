@@ -458,8 +458,7 @@ elif st.session_state.page == "project":
     # Main Table - unique key per project
     if f"project_df_{project}" not in st.session_state:
         st.session_state[f"project_df_{project}"] = df.copy()
-    else:
-        df = st.session_state[f"project_df_{project}"]
+    df = st.session_state[f"project_df_{project}"]
         
     edited = st.data_editor(
         df,
@@ -477,7 +476,7 @@ elif st.session_state.page == "project":
         st.session_state.cached_old_df = df.copy()
 
 # --- Detect actual edits (not just cursor move) ---
-    if not edited.equals(df):
+    if not edited.equals(st.session_state[f"project_df_{project}"]):
         st.session_state[f"project_df_{project}"] = edited.copy()
         st.session_state.project_df = edited.copy()
         st.session_state.last_edit_timestamp = time.time()
@@ -605,6 +604,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
