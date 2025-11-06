@@ -476,10 +476,14 @@ elif st.session_state.page == "project":
         st.session_state.is_saving_items = False
 
 # --- 📋 Detect changes safely (use deep equality check)
+    # --- 📋 Detect changes safely (use deep equality check)
     if not edited.equals(st.session_state[f"project_df_{project}"]):
+    # Immediately update both the session copy and df itself
         st.session_state[f"project_df_{project}"] = edited.copy()
         st.session_state.project_df = edited.copy()
+        df = edited.copy()  # 🧠 keep UI data in sync instantly
         st.session_state.last_edit_timestamp = time.time()
+
 
 # --- 🕓 Debounce timer (save after inactivity)
     INACTIVITY_DELAY = 20  # seconds (adjust if needed)
@@ -596,6 +600,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
