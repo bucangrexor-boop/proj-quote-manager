@@ -198,32 +198,51 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.stop()
                 
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-    
-    SHEET_HEADERS = ["Item", "Part Number", "Description", "Quantity", "Unit", "Unit Price", "Subtotal"]
+    # Helper: find last non-empty row in column A (1-indexed)
+    def get_last_data_row(ws):
+        try:
+            colA = ws.col_values(1)
+        except Exception:
+            # fallback: if col_values fails, derive from old_df length
+            return len(old_df) + 1
+        last = 0
+        for i, val in enumerate(colA, start=1):
+            if val is not None and str(val).strip() != "":
+                last = i
+        return last
 
-    # ✅ Keep original dtypes, remove NaN safely
+    # Normalize dataframes: keep types but replace np.nan with None for clarity
     old = old_df.replace({np.nan: None}).reset_index(drop=True)
     new = new_df.replace({np.nan: None}).reset_index(drop=True)
 
     old_len = len(old)
     new_len = len(new)
 
-    # ✅ If sheet is empty → full write
+    # QUICK LOG (visible in Streamlit): what we loaded
+    try:
+        st.write(f"apply_sheet_updates: old_len={old_len}, new_len={new_len}")
+    except Exception:
+        pass
+
+    # If sheet was empty -> write full sheet (header + all rows)
     if old_len == 0 and new_len > 0:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
-        ws.batch_clear(["A1:G200"])
-        ws.update(f"A1:G{len(values)}", values)
+        try:
+            ws.batch_clear(["A1:G200"])
+            ws.update(f"A1:G{len(values)}", values)
+        except Exception as e:
+            st.error(f"❌ Error writing full sheet: {e}")
         return
 
+    # Find changed rows up to min_len (row-by-row equals)
     min_len = min(old_len, new_len)
-
-    # ✅ detect changed rows
-    changed = []
+    changed_rows = []
     for i in range(min_len):
-        if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS]):
-            changed.append(i)
+        # Compare row Series (this returns single boolean)
+        if not new.loc[i, SHEET_HEADERS].equals(old.loc[i, SHEET_HEADERS]):
+            changed_rows.append(i)
 
-    # ✅ group contiguous blocks
+    # Group contiguous changed rows
     def contiguous_blocks(indices):
         if not indices:
             return []
@@ -240,28 +259,44 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
         blocks.append((start, end))
         return blocks
 
-    blocks = contiguous_blocks(changed)
+    blocks = contiguous_blocks(changed_rows)
 
-    # ✅ update modified blocks
+    # Update each changed block (convert to strings and empty for None)
     for (start_idx, end_idx) in blocks:
-        sheet_start = start_idx + 2
-        sheet_end = end_idx + 2
-        block = new.loc[start_idx:end_idx, SHEET_HEADERS].fillna("").astype(str).values.tolist()
-        ws.update(f"A{sheet_start}:G{sheet_end}", block)
+        sheet_start_row = start_idx + 2  # header at row 1 => data starts row 2
+        sheet_end_row = end_idx + 2
+        block_df = new.loc[start_idx:end_idx, SHEET_HEADERS].fillna("").astype(str)
+        values = block_df.values.tolist()
+        try:
+            st.write(f"Updating rows {sheet_start_row}..{sheet_end_row} -> {len(values)} rows")
+            ws.update(f"A{sheet_start_row}:G{sheet_end_row}", values)
+        except Exception as e:
+            st.error(f"❌ Error updating rows {sheet_start_row}-{sheet_end_row}: {e}")
 
-    # ✅ APPEND NEW ROWS (this is your missing part)
+    # Handle appended rows (safe append using last non-empty row on the sheet)
     if new_len > old_len:
-        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS].fillna("").astype(str).values.tolist()
+        # Use actual last data row in sheet to find correct append position
+        last_data_row = get_last_data_row(ws)           # returns 1-indexed row of last non-empty cell in col A
+        start_index = old_len                           # index in DataFrame for first appended row (0-based)
+        append_block = new.loc[start_index:new_len - 1, SHEET_HEADERS].fillna("").astype(str).values.tolist()
         if append_block:
-            start_row = old_len + 2
-            end_row = new_len + 1
-            ws.update(f"A{start_row}:G{end_row}", append_block)
+            # next row to write is last_data_row + 1
+            start_row = last_data_row + 1
+            end_row = start_row + len(append_block) - 1
+            try:
+                st.write(f"Appending rows at sheet rows {start_row}..{end_row} -> {len(append_block)} rows")
+                ws.update(f"A{start_row}:G{end_row}", append_block)
+            except Exception as e:
+                st.error(f"❌ Error appending rows {start_row}-{end_row}: {e}")
 
-    # ✅ If rows were deleted → rewrite entire sheet
+    # If rows were deleted in new_df -> safest to rewrite entire sheet
     if new_len < old_len:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
-        ws.batch_clear(["A1:G200"])
-        ws.update(f"A1:G{len(values)}", values)
+        try:
+            ws.batch_clear(["A1:G200"])
+            ws.update(f"A1:G{len(values)}", values)
+        except Exception as e:
+            st.error(f"❌ Error rewriting entire sheet: {e}")
         
 def save_totals_to_ws(ws, total, vat, grand_total):
     updates = [
@@ -569,6 +604,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
