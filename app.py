@@ -487,18 +487,24 @@ elif st.session_state.page == "project":
         st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
 
 # --- Display editable table ---
+    data_key = f"project_df_{project}"
+    editor_key = f"editor_{project}" 
+
+    if data_key not in st.session_state:
+        st.session_state[data_key] = df.copy()
+    
     edited = st.data_editor(
-        st.session_state.project_df,
+        st.session_state[data_key],
         num_rows="dynamic",
         use_container_width=True,
-        key=f"editor_{project}"
+        key=editor_key
     )
 
 # --- Detect edits & mark unsaved changes ---
-    if not edited.equals(st.session_state.project_df):
+    if not edited.equals(st.session_state[data_key]):
+        st.session_state[data_key] = edited.copy()
         st.session_state.project_df = edited.copy()
-        st.session_state[f"project_df_{project}"] = edited.copy()
-        st.session_state.unsaved_changes = True  # ⚠️ mark unsaved edits
+        st.session_state.unsaved_changes = True
 
 # --- Show unsaved changes warning ---
     if st.session_state.get("unsaved_changes", False):
@@ -592,6 +598,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
