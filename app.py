@@ -514,9 +514,8 @@ elif st.session_state.page == "project":
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
                     st.session_state.unsaved_changes = False
 
-            except Exception as e:
-                st.error(f"❌ Failed to save changes: {e}")
-
+                except Exception as e:
+                    st.error(f"❌ Failed to save changes: {e}")
     # Display metrics
     st.markdown("""
         <style>
@@ -572,6 +571,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
