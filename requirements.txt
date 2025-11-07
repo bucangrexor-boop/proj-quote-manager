@@ -5,3 +5,4 @@ pandas
 reportlab
 streamlit_autorefresh
 numpy
+firebase-admin
