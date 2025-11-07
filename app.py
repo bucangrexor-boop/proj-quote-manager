@@ -1,4 +1,3 @@
-
 # ===============================================================
 # Streamlit Project Quotation Manager 
 # File: app.py
@@ -204,7 +203,19 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.error(f"Failed to open worksheet '{project}'. Please try again in a few seconds.")
                 st.session_state.page = "welcome"
                 st.stop()
+                
+def save_totals_to_ws(ws, total, vat, grand_total):
+    updates = [
+        {"range": "I9", "values": [["Total"]]},
+        {"range": "J9", "values": [[str(total)]]},
 
+        {"range": "I10", "values": [["VAT (12%)"]]},
+        {"range": "J10", "values": [[str(vat)]]},
+
+        {"range": "I11", "values": [["Grand Total"]]},
+        {"range": "J11", "values": [[str(grand_total)]]},
+    ]
+    ws.batch_update(updates)
 
 # ===============================================================
 # Smart sheet update: only update changed rows (and append new)
@@ -534,10 +545,9 @@ elif st.session_state.page == "project":
                     new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                     new_df["Item"] = [i + 1 for i in range(len(new_df))]
-
                 # Apply only changed rows (batch update)
                     apply_sheet_updates(ws, old_df, new_df)
-
+                    save_totals_to_ws(ws, total, vat, grand_total)
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
                     st.session_state.unsaved_changes = False  # 🧠 mark clean state
                 except Exception as e:
@@ -587,6 +597,7 @@ elif st.session_state.page == "project":
             "Price Validity": t_price,
             "Discount": t_discount
         })
+        save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
 
     if export_pdf:
@@ -608,6 +619,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
