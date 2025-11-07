@@ -457,8 +457,7 @@ elif st.session_state.page == "project":
         if st.button("🔄 Refresh", key="refresh_sheet"):
             with st.spinner("Reloading data..."):
                 new_df = df_from_worksheet(ws)
-                st.session_state[f"project_df_{project}"] = new_df.copy()
-                st.session_state.project_df = new_df.copy()
+                df_ref.loc[:, :] = new_df
                 st.session_state.unsaved_changes = False
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
             st_autorefresh.empty()
@@ -610,6 +609,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
