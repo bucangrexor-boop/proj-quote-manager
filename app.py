@@ -218,33 +218,75 @@ def save_totals_to_ws(ws, total, vat, grand_total):
     ws.batch_update(updates)
 
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-    # Normalize data to strings for sheet update (gspread expects strings/numbers)
-    old = old_df.copy
-    new = new_df.copy
+    import gspread
+    import pandas as _pd
 
+    # Defensive: if caller passed a function by mistake, try to call it with ws
+    if callable(old_df):
+        try:
+            old_df = old_df(ws)
+        except Exception:
+            raise TypeError("apply_sheet_updates: expected old_df DataFrame or callable(ws) returning a DataFrame")
+
+    if callable(new_df):
+        try:
+            new_df = new_df(ws)
+        except Exception:
+            raise TypeError("apply_sheet_updates: expected new_df DataFrame or callable(ws) returning a DataFrame")
+
+    # Ensure we have pandas DataFrames
+    if not isinstance(old_df, _pd.DataFrame) or not isinstance(new_df, _pd.DataFrame):
+        # try a safe coercion if possible
+        try:
+            old_df = _pd.DataFrame(old_df)
+            new_df = _pd.DataFrame(new_df)
+        except Exception:
+            raise TypeError("apply_sheet_updates: old_df/new_df must be pandas.DataFrame-like")
+
+    # Work on copies
+    old = old_df.copy()
+    new = new_df.copy()
+
+    # Re-align row indices and ensure Item column matches index
     old = old.reset_index(drop=True)
     new = new.reset_index(drop=True)
-    
     new["Item"] = new.index + 1
     old["Item"] = old.index + 1
 
-    # If sheet was empty before, do a full write (header + all rows)
+    # Normalize numeric columns BEFORE string conversion
+    for col in ["Quantity", "Unit Price", "Subtotal"]:
+        if col in old.columns:
+            old[col] = _pd.to_numeric(old[col], errors="coerce").fillna(0)
+        else:
+            old[col] = 0
+        if col in new.columns:
+            new[col] = _pd.to_numeric(new[col], errors="coerce").fillna(0)
+        else:
+            new[col] = 0
+
+    # Convert to strings for Sheets update
+    old = old.fillna("").astype(str)
+    new = new.fillna("").astype(str)
+
+    old_len = len(old)
+    new_len = len(new)
+
+    # If sheet empty -> full write
     if old_len == 0 and new_len > 0:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
         ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:G{new_len+1}", values)
+        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
         return
-  
+
+    # Find differing rows up to min length
     min_len = min(old_len, new_len)
-    changed = [
-        i for i in range(min_len)
-        if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])
-    ]
-    
+    changed = [i for i in range(min_len) if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])]
+
+    # Helper to group contiguous indices
     def contiguous_blocks(indices):
-        blocks = []
         if not indices:
-            return blocks
+            return []
+        blocks = []
         start = indices[0]
         end = start
         for idx in indices[1:]:
@@ -259,26 +301,35 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     blocks = contiguous_blocks(changed)
 
-    # Update changed blocks
-    for start_idx, end_idx in blocks:
-        sheet_start = start_idx + 2
-        sheet_end = end_idx + 2
-        values = new.loc[start_idx:end_idx, SHEET_HEADERS].values.tolist()
-        ws.update(f"A{sheet_start}:G{sheet_end}", values)
+    # Update changed contiguous blocks
+    for (start_idx, end_idx) in blocks:
+        sheet_start_row = start_idx + 2  # header row is 1
+        sheet_end_row = end_idx + 2
+        block = new.loc[start_idx:end_idx, SHEET_HEADERS]
+        values = block.values.tolist()
+        a1_start = f"A{sheet_start_row}"
+        a1_end = f"{gspread.utils.rowcol_to_a1(sheet_end_row, len(SHEET_HEADERS))}"
+        rng = f"{a1_start}:{a1_end}"
+        ws.update(rng, values)
 
-    # Append rows
+    # Append rows if any
     if new_len > old_len:
-        extra = new.loc[old_len:new_len-1, SHEET_HEADERS]
-        ws.update(
-            f"A{old_len+2}:G{new_len+1}",
-            extra.values.tolist()
-        )
+        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS]
+        if len(append_block) > 0:
+            start_row = old_len + 2
+            end_row = new_len + 1
+            values = append_block.values.tolist()
+            a1_start = f"A{start_row}"
+            a1_end = f"{gspread.utils.rowcol_to_a1(end_row, len(SHEET_HEADERS))}"
+            rng = f"{a1_start}:{a1_end}"
+            ws.update(rng, values)
 
-    # Handle row deletion by rewriting whole sheet
+    # If rows were deleted -> rewrite whole sheet (safe fallback)
     if new_len < old_len:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
         ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:G{new_len+1}", values)
+        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+
         
 # ===============================================================
 # PDF Generator
@@ -600,6 +651,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
