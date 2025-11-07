@@ -506,6 +506,16 @@ elif st.session_state.page == "project":
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                     new_df["Item"] = [i + 1 for i in range(len(new_df))]
                     # Apply only changed rows
+                    st.subheader("DEBUG INFO")
+                    st.write("⬇️ NEW_DF (edited)")
+                    st.write(new_df)
+
+                    st.write("⬇️ OLD_DF (sheet)")
+                    st.write(old_df)
+
+                    st.write("Same length?", len(old_df) == len(new_df))
+                    st.write("Rows that differ:", (old_df != new_df).any(axis=1).nonzero()[0])
+
                     apply_sheet_updates(ws, old_df, new_df)
                     # Save totals
                     save_totals_to_ws(ws, total, vat, grand_total)
@@ -570,6 +580,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
