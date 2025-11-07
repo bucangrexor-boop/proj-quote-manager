@@ -560,6 +560,7 @@ elif st.session_state.page == "project":
             "Discount": t_discount
         })
         save_totals_to_ws(ws, total, vat, grand_total)
+        apply_sheet_updates(ws, old_df, new_df)
         st.success("Saved terms successfully.")
 
     if export_pdf:
@@ -580,6 +581,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
