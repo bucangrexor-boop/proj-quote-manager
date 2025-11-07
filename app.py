@@ -198,28 +198,32 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.stop()
                 
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
+    
+    SHEET_HEADERS = ["Item", "Part Number", "Description", "Quantity", "Unit", "Unit Price", "Subtotal"]
+
+    # ✅ Keep original dtypes, remove NaN safely
     old = old_df.replace({np.nan: None}).reset_index(drop=True)
     new = new_df.replace({np.nan: None}).reset_index(drop=True)
 
     old_len = len(old)
     new_len = len(new)
 
-    # ✅ Rewrite whole sheet if first time
+    # ✅ If sheet is empty → full write
     if old_len == 0 and new_len > 0:
-        values = [SHEET_HEADERS] + new[SHEET_HEADERS].astype(str).values.tolist()
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
         ws.batch_clear(["A1:G200"])
         ws.update(f"A1:G{len(values)}", values)
         return
 
     min_len = min(old_len, new_len)
 
-    # ✅ Find changed rows (real value comparison)
+    # ✅ detect changed rows
     changed = []
     for i in range(min_len):
         if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS]):
             changed.append(i)
 
-    # ✅ Group contiguous blocks
+    # ✅ group contiguous blocks
     def contiguous_blocks(indices):
         if not indices:
             return []
@@ -238,25 +242,26 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     blocks = contiguous_blocks(changed)
 
-    # ✅ Update changed blocks
+    # ✅ update modified blocks
     for (start_idx, end_idx) in blocks:
         sheet_start = start_idx + 2
         sheet_end = end_idx + 2
-        block = new.loc[start_idx:end_idx, SHEET_HEADERS].astype(str).values.tolist()
+        block = new.loc[start_idx:end_idx, SHEET_HEADERS].fillna("").astype(str).values.tolist()
         ws.update(f"A{sheet_start}:G{sheet_end}", block)
 
-    # ✅ Append rows
+    # ✅ APPEND NEW ROWS (this is your missing part)
     if new_len > old_len:
-        block = new.loc[old_len:new_len - 1, SHEET_HEADERS].astype(str).values.tolist()
-        start_row = old_len + 2
-        end_row = new_len + 1
-        ws.update(f"A{start_row}:G{end_row}", block)
+        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS].fillna("").astype(str).values.tolist()
+        if append_block:
+            start_row = old_len + 2
+            end_row = new_len + 1
+            ws.update(f"A{start_row}:G{end_row}", append_block)
 
-    # ✅ If rows were deleted → rewrite sheet
+    # ✅ If rows were deleted → rewrite entire sheet
     if new_len < old_len:
-        values = [SHEET_HEADERS] + new[SHEET_HEADERS].astype(str).values.tolist()
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
         ws.batch_clear(["A1:G200"])
-        ws.update(f"A1:G{len(values)}", values) 
+        ws.update(f"A1:G{len(values)}", values)
         
 def save_totals_to_ws(ws, total, vat, grand_total):
     updates = [
@@ -564,6 +569,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
