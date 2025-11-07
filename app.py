@@ -1,7 +1,3 @@
-# ===============================================================
-# Streamlit Project Quotation Manager 
-# File: app.py
-# ===============================================================
 
 # ----------------------
 # Imports
@@ -24,14 +20,10 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
-# ----------------------
 # Streamlit Configuration
-# ----------------------
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
 
-# ----------------------
 # Constants
-# ----------------------
 GSHEETS_KEY_SECRET = "gsheets_key"
 GCP_SA_SECRET = "gcp_service_account"
 
@@ -651,6 +643,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
