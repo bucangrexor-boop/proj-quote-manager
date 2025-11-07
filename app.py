@@ -494,36 +494,28 @@ elif st.session_state.page == "project":
         if st.button("💾 Save Changes", key="save_changes"):
             with st.spinner("Saving changes to Google Sheets..."):
                 try:
-                    # new_df from the session key (single source of truth)
-                    new_df = st.session_state[session_key].copy()
-
-                    # old_df directly from the sheet
+                    new_df = st.session_state[f"project_df_{project}"].copy()
                     old_df = df_from_worksheet(ws)
+            # ✅ Fix data types before diff
+                    for col in ["Quantity", "Unit Price", "Subtotal"]:
+                        new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0).astype(float)
 
-                    # Recalculate numeric columns and Item
-                    new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
-                    new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
-                    new_df["Item"] = [i + 1 for i in range(len(new_df))]
-                    # Apply only changed rows
-                    st.subheader("DEBUG INFO")
-                    st.write("⬇️ NEW_DF (edited)")
-                    st.write(new_df)
 
-                    st.write("⬇️ OLD_DF (sheet)")
-                    st.write(old_df)
+            # ✅ Convert numpy scalars → Python floats
+                    new_df = new_df.applymap(lambda x: x.item() if hasattr(x, "item") else x)
 
-                    st.write("Same length?", len(old_df) == len(new_df))
-                    st.write("Rows that differ:", (old_df != new_df).any(axis=1).nonzero()[0])
+            # ✅ Force clean index + items
+                    new_df["Item"] = range(1, len(new_df) + 1)
 
                     apply_sheet_updates(ws, old_df, new_df)
-                    # Save totals
                     save_totals_to_ws(ws, total, vat, grand_total)
 
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
                     st.session_state.unsaved_changes = False
-                except Exception as e:
-                    st.error(f"❌ Failed to save changes: {e}")
+
+            except Exception as e:
+                st.error(f"❌ Failed to save changes: {e}")
 
     # Display metrics
     st.markdown("""
@@ -580,6 +572,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
