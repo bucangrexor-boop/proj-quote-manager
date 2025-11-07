@@ -197,26 +197,28 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.stop()
                 
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-
-    # Normalize data to strings for sheet update (gspread expects strings/numbers)
-    old = old_df.fillna("").astype(str).reset_index(drop=True)
-    new = new_df.fillna("").astype(str).reset_index(drop=True)
+    old = old_df.replace({np.nan: None}).reset_index(drop=True)
+    new = new_df.replace({np.nan: None}).reset_index(drop=True)
 
     old_len = len(old)
     new_len = len(new)
 
-    # If sheet was empty before, do a full write (header + all rows)
+    # ✅ Rewrite whole sheet if first time
     if old_len == 0 and new_len > 0:
-        values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
-        ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].astype(str).values.tolist()
+        ws.batch_clear(["A1:G200"])
+        ws.update(f"A1:G{len(values)}", values)
         return
 
-    # Find differing row indices up to min length
     min_len = min(old_len, new_len)
-    changed = [i for i in range(min_len) if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])]
 
-    # If there are changed rows within existing range, group contiguous blocks
+    # ✅ Find changed rows (real value comparison)
+    changed = []
+    for i in range(min_len):
+        if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS]):
+            changed.append(i)
+
+    # ✅ Group contiguous blocks
     def contiguous_blocks(indices):
         if not indices:
             return []
@@ -235,36 +237,26 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     blocks = contiguous_blocks(changed)
 
+    # ✅ Update changed blocks
     for (start_idx, end_idx) in blocks:
-        # sheet rows are offset by 2 (header at row 1)
-        sheet_start_row = start_idx + 2
-        sheet_end_row = end_idx + 2
-        block = new.loc[start_idx:end_idx, SHEET_HEADERS]
-        # Prepare values (no header)
-        values = block.values.tolist()
-        a1_start = f"A{sheet_start_row}"
-        a1_end = f"{gspread.utils.rowcol_to_a1(sheet_end_row, len(SHEET_HEADERS))}"
-        rng = f"{a1_start}:{a1_end}"
-        ws.update(rng, values)
+        sheet_start = start_idx + 2
+        sheet_end = end_idx + 2
+        block = new.loc[start_idx:end_idx, SHEET_HEADERS].astype(str).values.tolist()
+        ws.update(f"A{sheet_start}:G{sheet_end}", block)
 
-    # Handle appended rows
+    # ✅ Append rows
     if new_len > old_len:
-        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS]
-        if len(append_block) > 0:
-            start_row = old_len + 2  # +2 because header row + 1-index
-            end_row = new_len + 1
-            values = append_block.values.tolist()
-            a1_start = f"A{start_row}"
-            a1_end = f"{gspread.utils.rowcol_to_a1(end_row, len(SHEET_HEADERS))}"
-            rng = f"{a1_start}:{a1_end}"
-            ws.update(rng, values)
+        block = new.loc[old_len:new_len - 1, SHEET_HEADERS].astype(str).values.tolist()
+        start_row = old_len + 2
+        end_row = new_len + 1
+        ws.update(f"A{start_row}:G{end_row}", block)
 
-    # If new_len < old_len (rows deleted), easiest and safest fallback is to rewrite whole sheet
+    # ✅ If rows were deleted → rewrite sheet
     if new_len < old_len:
-        values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
-        ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
-
+        values = [SHEET_HEADERS] + new[SHEET_HEADERS].astype(str).values.tolist()
+        ws.batch_clear(["A1:G200"])
+        ws.update(f"A1:G{len(values)}", values) 
+        
 def save_totals_to_ws(ws, total, vat, grand_total):
     updates = [
         {"range": "I9", "values": [["Total"]]},
@@ -571,6 +563,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
