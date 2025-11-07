@@ -210,14 +210,6 @@ def save_totals_to_ws(ws, total, vat, grand_total):
     ws.batch_update(updates)
     
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-    """
-    Update only rows that changed from old_df -> new_df.
-    old_df/new_df are expected to have the same column order as SHEET_HEADERS.
-    This function will:
-     - Update each contiguous block of changed rows (A{start}:G{end}) with their new values.
-     - If rows were appended, append them.
-    """
-    import gspread
 
     # Normalize data to strings for sheet update (gspread expects strings/numbers)
     old = old_df.fillna("").astype(str).reset_index(drop=True)
@@ -560,7 +552,6 @@ elif st.session_state.page == "project":
             "Discount": t_discount
         })
         save_totals_to_ws(ws, total, vat, grand_total)
-        apply_sheet_updates(ws, old_df, new_df)
         st.success("Saved terms successfully.")
 
     if export_pdf:
@@ -581,6 +572,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
