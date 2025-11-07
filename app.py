@@ -416,37 +416,30 @@ elif st.session_state.page == "create_project":
         st.rerun()
 
 
-# Project Page (Optimized)
-
+# ----------------------
+# Project Page (Optimized) - REPLACEMENT BLOCK
+# ----------------------
 elif st.session_state.page == "project":
     st_autorefresh = st.empty()
     project = st.session_state.get("current_project")
 
+    # Get worksheet
     if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
         st.session_state.ws = get_worksheet_with_retry(ss, project)
         st.session_state.ws_project = project
-
     ws = st.session_state.ws
 
-# --- Load data only once per project ---
-    if "project_df" not in st.session_state or st.session_state.get("project_df_project") != project:
-        st.session_state.project_df = df_from_worksheet(ws)
-        st.session_state.project_df_project = project
-        st.session_state.last_edit_timestamp = 0.0
-        st.session_state.is_saving_items = False
-    
-    df = st.session_state.project_df  # Always use this copy for display/edit
+    # Initialize / load per-project DataFrame into session state (single source of truth)
+    session_key = f"project_df_{project}"
+    if session_key not in st.session_state:
+        st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
+        # mark the project that was loaded (for potential future logic)
+        st.session_state[f"{session_key}_loaded"] = True
 
-    # --- Persistent editor state fix ---
-    data_key = f"project_df_{project}"
+    # df_ref is the live DataFrame the editor uses
+    df_ref = st.session_state[session_key]
 
-    if data_key not in st.session_state:
-        st.session_state[data_key] = df.copy()
-        st.session_state[data_key].reset_index(drop=True, inplace=True)
-
-    df_ref = st.session_state[data_key]  # Reference to the live DataFrame
-
-# --- Header Buttons ---
+    # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
@@ -454,19 +447,15 @@ elif st.session_state.page == "project":
     with col2:
         if st.button("🔄 Refresh", key="refresh_sheet"):
             with st.spinner("Reloading data..."):
-                new_df = df_from_worksheet(ws)
-                df_ref.loc[:, :] = new_df
+                reloaded = df_from_worksheet(ws)
+                # Overwrite session copy with freshly loaded DF
+                st.session_state[session_key] = reloaded.reset_index(drop=True)
+                df_ref = st.session_state[session_key]
                 st.session_state.unsaved_changes = False
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
             st_autorefresh.empty()
-    
-    with col3:
-        if st.button("➕ Row", key="add_top"):
-            # Add row locally, will be saved after debounce
-            new_row = pd.Series([len(df) + 1, "", "", 0, "", 0, 0], index=SHEET_HEADERS)
-            df = df.append(new_row, ignore_index=True)
-            st.session_state.project_df = df
-            st.rerun()
+
+    # Note: removed the + Row button per user's request
 
     with col4:
         if st.button("⬅️ Back", key="back_top"):
@@ -476,29 +465,11 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    # Main Table - unique key per project
-    # --- Initialize session data if not present ---
-    if f"project_df_{project}" not in st.session_state:
-        st.session_state[f"project_df_{project}"] = df.copy()
-    if "last_edit_timestamp" not in st.session_state:
-        st.session_state.last_edit_timestamp = 0.0
-    if "is_saving_items" not in st.session_state:
-        st.session_state.is_saving_items = False
-    
-# --- Always work on the session copy ---
-    current_df = st.session_state[f"project_df_{project}"]
-
-# --- Ensure project_df exists ---
+    # Ensure project_df exists (safe fallback)
     if "project_df" not in st.session_state:
         st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
 
-# --- Display editable table ---
-    data_key = f"project_df_{project}"
-    editor_key = f"editor_{project}" 
-
-    if data_key not in st.session_state:
-        st.session_state[data_key] = df.copy()
-    
+    # Display editable table - work directly on df_ref (session copy)
     edited = st.data_editor(
         df_ref,
         num_rows="dynamic",
@@ -506,21 +477,17 @@ elif st.session_state.page == "project":
         key=f"editor_{project}"
     )
 
-# Only update if actual cell values changed
+    # Write edits back into the session copy (in-place)
     if not edited.equals(df_ref):
-    # Instead of replacing the DataFrame object,
-    # update it *in place* (this prevents Streamlit reset)
-        df_ref.loc[:, :] = edited
-        st.session_state.project_df = df_ref
+        # update the session DataFrame in-place to avoid swapping objects
+        st.session_state[session_key].loc[:, :] = edited
         st.session_state.unsaved_changes = True
 
-
-# --- Show unsaved changes warning ---
+    # Unsaved changes warning
     if st.session_state.get("unsaved_changes", False):
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
-# --- Save button (manual batch save) ---
-    # Totals
+    # --- Totals --- (compute BEFORE Save button so they exist when saving)
     total = edited["Subtotal"].sum()
     try:
         discount = float(ws.acell("J8").value or 0)
@@ -528,28 +495,37 @@ elif st.session_state.page == "project":
         discount = 0.0
     vat = total * 0.12
     grand_total = total + vat - discount
-    
+
+    # Save button (manual batch save)
     save_col1, save_col2 = st.columns([5, 1])
     with save_col2:
         if st.button("💾 Save Changes", key="save_changes"):
             with st.spinner("Saving changes to Google Sheets..."):
                 try:
-                    new_df = st.session_state[f"project_df_{project}"].copy()
+                    # new_df from the session key (single source of truth)
+                    new_df = st.session_state[session_key].copy()
+
+                    # old_df directly from the sheet
                     old_df = df_from_worksheet(ws)
 
-                # Recalculate numeric columns and totals
+                    # Recalculate numeric columns and Item
                     new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
                     new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                     new_df["Item"] = [i + 1 for i in range(len(new_df))]
-                # Apply only changed rows (batch update)
+
+                    # Apply only changed rows
                     apply_sheet_updates(ws, old_df, new_df)
+
+                    # Save totals
                     save_totals_to_ws(ws, total, vat, grand_total)
+
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
-                    st.session_state.unsaved_changes = False  # 🧠 mark clean state
+                    st.session_state.unsaved_changes = False
                 except Exception as e:
                     st.error(f"❌ Failed to save changes: {e}")
 
+    # Display metrics
     st.markdown("""
         <style>
         .big-metric { font-size: 28px; font-weight: 700; color: #222; }
@@ -562,10 +538,9 @@ elif st.session_state.page == "project":
     st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
 
-    # Terms & Conditions
+    # Terms & Conditions (unchanged)
     st.markdown("---")
     st.subheader("Terms & Conditions")
-
     terms = read_terms_from_ws(ws)
     col1, col2 = st.columns(2)
     with col1:
@@ -602,10 +577,10 @@ elif st.session_state.page == "project":
             file_name=f"{project}_quotation.pdf",
             mime="application/pdf"
         )
-
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
