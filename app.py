@@ -506,7 +506,7 @@ elif st.session_state.page == "project":
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
                     new_df["Item"] = [i + 1 for i in range(len(new_df))]
                     # Apply only changed rows
-                    apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame)
+                    apply_sheet_updates(ws, old_df, new_df)
                     # Save totals
                     save_totals_to_ws(ws, total, vat, grand_total)
 
@@ -570,6 +570,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
