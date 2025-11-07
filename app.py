@@ -217,42 +217,34 @@ def save_totals_to_ws(ws, total, vat, grand_total):
     ]
     ws.batch_update(updates)
 
-# ===============================================================
-# Smart sheet update: only update changed rows (and append new)
-# ===============================================================
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-    """
-    Update only rows that changed from old_df -> new_df.
-    old_df/new_df are expected to have the same column order as SHEET_HEADERS.
-    This function will:
-     - Update each contiguous block of changed rows (A{start}:G{end}) with their new values.
-     - If rows were appended, append them.
-    """
-    import gspread
-
     # Normalize data to strings for sheet update (gspread expects strings/numbers)
-    old = old_df.fillna("").astype(str).reset_index(drop=True)
-    new = new_df.fillna("").astype(str).reset_index(drop=True)
+    old = old_df.copy
+    new = new_df.copy
 
-    old_len = len(old)
-    new_len = len(new)
+    old = old.reset_index(drop=True)
+    new = new.reset_index(drop=True)
+    
+    new["Item"] = new.index + 1
+    old["Item"] = old.index + 1
 
     # If sheet was empty before, do a full write (header + all rows)
     if old_len == 0 and new_len > 0:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
         ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+        ws.update(f"A1:G{new_len+1}", values)
         return
-
-    # Find differing row indices up to min length
+  
     min_len = min(old_len, new_len)
-    changed = [i for i in range(min_len) if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])]
-
-    # If there are changed rows within existing range, group contiguous blocks
+    changed = [
+        i for i in range(min_len)
+        if not old.loc[i, SHEET_HEADERS].equals(new.loc[i, SHEET_HEADERS])
+    ]
+    
     def contiguous_blocks(indices):
-        if not indices:
-            return []
         blocks = []
+        if not indices:
+            return blocks
         start = indices[0]
         end = start
         for idx in indices[1:]:
@@ -267,37 +259,27 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     blocks = contiguous_blocks(changed)
 
-    for (start_idx, end_idx) in blocks:
-        # sheet rows are offset by 2 (header at row 1)
-        sheet_start_row = start_idx + 2
-        sheet_end_row = end_idx + 2
-        block = new.loc[start_idx:end_idx, SHEET_HEADERS]
-        # Prepare values (no header)
-        values = block.values.tolist()
-        a1_start = f"A{sheet_start_row}"
-        a1_end = f"{gspread.utils.rowcol_to_a1(sheet_end_row, len(SHEET_HEADERS))}"
-        rng = f"{a1_start}:{a1_end}"
-        ws.update(rng, values)
+    # Update changed blocks
+    for start_idx, end_idx in blocks:
+        sheet_start = start_idx + 2
+        sheet_end = end_idx + 2
+        values = new.loc[start_idx:end_idx, SHEET_HEADERS].values.tolist()
+        ws.update(f"A{sheet_start}:G{sheet_end}", values)
 
-    # Handle appended rows
+    # Append rows
     if new_len > old_len:
-        append_block = new.loc[old_len:new_len - 1, SHEET_HEADERS]
-        if len(append_block) > 0:
-            start_row = old_len + 2  # +2 because header row + 1-index
-            end_row = new_len + 1
-            values = append_block.values.tolist()
-            a1_start = f"A{start_row}"
-            a1_end = f"{gspread.utils.rowcol_to_a1(end_row, len(SHEET_HEADERS))}"
-            rng = f"{a1_start}:{a1_end}"
-            ws.update(rng, values)
+        extra = new.loc[old_len:new_len-1, SHEET_HEADERS]
+        ws.update(
+            f"A{old_len+2}:G{new_len+1}",
+            extra.values.tolist()
+        )
 
-    # If new_len < old_len (rows deleted), easiest and safest fallback is to rewrite whole sheet
+    # Handle row deletion by rewriting whole sheet
     if new_len < old_len:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
         ws.batch_clear(["A1:G100"])
-        ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
-
-
+        ws.update(f"A1:G{new_len+1}", values)
+        
 # ===============================================================
 # PDF Generator
 # ===============================================================
@@ -618,6 +600,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
