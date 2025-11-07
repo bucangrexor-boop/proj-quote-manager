@@ -23,17 +23,29 @@ from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+import firebase_admin
+from firebase_admin import credentials, firestore
+import json
+import streamlit as st
 
+@st.cache_resource
+def init_firestore():
+    # Load service account from Streamlit Secrets
+    firebase_creds = json.loads(st.secrets["firebase_service_account"])
+    cred = credentials.Certificate(firebase_creds)
+
+    try:
+        firebase_admin.get_app()
+    except:
+        firebase_admin.initialize_app(cred)
+
+    return firestore.client()
+
+db = init_firestore()
 # ----------------------
 # Streamlit Configuration
 # ----------------------
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
-
-# ----------------------
-# Constants
-# ----------------------
-GSHEETS_KEY_SECRET = "gsheets_key"
-GCP_SA_SECRET = "GCP_SA_SECRET"
 
 SHEET_HEADERS = [
     "Item", "Part Number", "Description", "Quantity", "Unit", "Unit Price", "Subtotal"
