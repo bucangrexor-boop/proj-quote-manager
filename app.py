@@ -416,23 +416,13 @@ elif st.session_state.page == "create_project":
         st.session_state.page = "welcome"
         st.rerun()
 
-# ----------------------
+
 # Project Page (Optimized)
-# ----------------------
-# --- Persistent editor state fix ---
-data_key = f"project_df_{project}"
-
-if data_key not in st.session_state:
-    st.session_state[data_key] = df.copy()
-    st.session_state[data_key].reset_index(drop=True, inplace=True)
-
-df_ref = st.session_state[data_key]  # Reference to the live DataFrame
 
 elif st.session_state.page == "project":
     st_autorefresh = st.empty()
     project = st.session_state.get("current_project")
 
-    
     if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
         st.session_state.ws = get_worksheet_with_retry(ss, project)
         st.session_state.ws_project = project
@@ -447,6 +437,15 @@ elif st.session_state.page == "project":
         st.session_state.is_saving_items = False
     
     df = st.session_state.project_df  # Always use this copy for display/edit
+
+    # --- Persistent editor state fix ---
+    data_key = f"project_df_{project}"
+
+    if data_key not in st.session_state:
+        st.session_state[data_key] = df.copy()
+        st.session_state[data_key].reset_index(drop=True, inplace=True)
+
+    df_ref = st.session_state[data_key]  # Reference to the live DataFrame
 
 # --- Header Buttons ---
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
@@ -609,6 +608,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
