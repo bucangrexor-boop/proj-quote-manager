@@ -532,6 +532,15 @@ elif st.session_state.page == "project":
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
 # --- Save button (manual batch save) ---
+    # Totals
+    total = edited["Subtotal"].sum()
+    try:
+        discount = float(ws.acell("J8").value or 0)
+    except Exception:
+        discount = 0.0
+    vat = total * 0.12
+    grand_total = total + vat - discount
+    
     save_col1, save_col2 = st.columns([5, 1])
     with save_col2:
         if st.button("💾 Save Changes", key="save_changes"):
@@ -552,16 +561,6 @@ elif st.session_state.page == "project":
                     st.session_state.unsaved_changes = False  # 🧠 mark clean state
                 except Exception as e:
                     st.error(f"❌ Failed to save changes: {e}")
-
-
-    # Totals
-    total = edited["Subtotal"].sum()
-    try:
-        discount = float(ws.acell("J8").value or 0)
-    except Exception:
-        discount = 0.0
-    vat = total * 0.12
-    grand_total = total + vat - discount
 
     st.markdown("""
         <style>
@@ -619,6 +618,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
