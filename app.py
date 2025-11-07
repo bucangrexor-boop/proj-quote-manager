@@ -196,19 +196,6 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.session_state.page = "welcome"
                 st.stop()
                 
-def save_totals_to_ws(ws, total, vat, grand_total):
-    updates = [
-        {"range": "I9", "values": [["Total"]]},
-        {"range": "J9", "values": [[str(total)]]},
-
-        {"range": "I10", "values": [["VAT (12%)"]]},
-        {"range": "J10", "values": [[str(vat)]]},
-
-        {"range": "I11", "values": [["Grand Total"]]},
-        {"range": "J11", "values": [[str(grand_total)]]},
-    ]
-    ws.batch_update(updates)
-    
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     # Normalize data to strings for sheet update (gspread expects strings/numbers)
@@ -277,6 +264,19 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].values.tolist()
         ws.batch_clear(["A1:G100"])
         ws.update(f"A1:{gspread.utils.rowcol_to_a1(len(values), len(SHEET_HEADERS))}", values)
+
+def save_totals_to_ws(ws, total, vat, grand_total):
+    updates = [
+        {"range": "I9", "values": [["Total"]]},
+        {"range": "J9", "values": [[str(total)]]},
+
+        {"range": "I10", "values": [["VAT (12%)"]]},
+        {"range": "J10", "values": [[str(vat)]]},
+
+        {"range": "I11", "values": [["Grand Total"]]},
+        {"range": "J11", "values": [[str(grand_total)]]},
+    ]
+    ws.batch_update(updates)
         
 # ===============================================================
 # PDF Generator
@@ -580,6 +580,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
