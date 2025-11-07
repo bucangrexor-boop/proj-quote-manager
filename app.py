@@ -523,8 +523,11 @@ elif st.session_state.page == "project":
 # ---------------------------------------------------
     if st.session_state.get("unsaved_changes", False):
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
-
     
+    current_df = st.session_state[session_key]
+
+# Make sure Subtotal is numeric
+    current_df["Subtotal"] = pd.to_numeric(current_df["Subtotal"], errors="coerce").fillna(0)
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
     total = edited["Subtotal"].sum()
     try:
@@ -633,6 +636,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
