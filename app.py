@@ -482,6 +482,10 @@ elif st.session_state.page == "project":
 # --- Always work on the session copy ---
     current_df = st.session_state[f"project_df_{project}"]
 
+# --- Ensure project_df exists ---
+if "project_df" not in st.session_state:
+    st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
+
 # --- Display editable table ---
 edited = st.data_editor(
     st.session_state.project_df,
@@ -588,6 +592,7 @@ with save_col2:
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
