@@ -529,7 +529,7 @@ elif st.session_state.page == "project":
 # Make sure Subtotal is numeric
     current_df["Subtotal"] = pd.to_numeric(current_df["Subtotal"], errors="coerce").fillna(0)
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
-    total = edited["Subtotal"].sum()
+    total = current_df["Subtotal"].sum()
     try:
         discount = float(ws.acell("J8").value or 0)
     except Exception:
@@ -636,6 +636,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
