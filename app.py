@@ -483,49 +483,49 @@ elif st.session_state.page == "project":
     current_df = st.session_state[f"project_df_{project}"]
 
 # --- Ensure project_df exists ---
-if "project_df" not in st.session_state:
-    st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
+    if "project_df" not in st.session_state:
+        st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
 
 # --- Display editable table ---
-edited = st.data_editor(
-    st.session_state.project_df,
-    num_rows="dynamic",
-    use_container_width=True,
-    key=f"editor_{project}"
-)
+    edited = st.data_editor(
+        st.session_state.project_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        key=f"editor_{project}"
+    )
 
 # --- Detect edits & mark unsaved changes ---
-if not edited.equals(st.session_state.project_df):
-    st.session_state.project_df = edited.copy()
-    st.session_state[f"project_df_{project}"] = edited.copy()
-    st.session_state.unsaved_changes = True  # ⚠️ mark unsaved edits
+    if not edited.equals(st.session_state.project_df):
+        st.session_state.project_df = edited.copy()
+        st.session_state[f"project_df_{project}"] = edited.copy()
+        st.session_state.unsaved_changes = True  # ⚠️ mark unsaved edits
 
 # --- Show unsaved changes warning ---
-if st.session_state.get("unsaved_changes", False):
-    st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
+    if st.session_state.get("unsaved_changes", False):
+        st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
 # --- Save button (manual batch save) ---
-save_col1, save_col2 = st.columns([5, 1])
-with save_col2:
-    if st.button("💾 Save Changes", key="save_changes"):
-        with st.spinner("Saving changes to Google Sheets..."):
-            try:
-                new_df = st.session_state[f"project_df_{project}"].copy()
-                old_df = df_from_worksheet(ws)
+    save_col1, save_col2 = st.columns([5, 1])
+    with save_col2:
+        if st.button("💾 Save Changes", key="save_changes"):
+            with st.spinner("Saving changes to Google Sheets..."):
+                try:
+                    new_df = st.session_state[f"project_df_{project}"].copy()
+                    old_df = df_from_worksheet(ws)
 
                 # Recalculate numeric columns and totals
-                new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
-                new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
-                new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
-                new_df["Item"] = [i + 1 for i in range(len(new_df))]
+                    new_df["Quantity"] = pd.to_numeric(new_df["Quantity"], errors="coerce").fillna(0)
+                    new_df["Unit Price"] = pd.to_numeric(new_df["Unit Price"], errors="coerce").fillna(0)
+                    new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
+                    new_df["Item"] = [i + 1 for i in range(len(new_df))]
 
                 # Apply only changed rows (batch update)
-                apply_sheet_updates(ws, old_df, new_df)
+                    apply_sheet_updates(ws, old_df, new_df)
 
-                st.toast("✅ Changes saved to Google Sheets!", icon="💾")
-                st.session_state.unsaved_changes = False  # 🧠 mark clean state
-            except Exception as e:
-                st.error(f"❌ Failed to save changes: {e}")
+                    st.toast("✅ Changes saved to Google Sheets!", icon="💾")
+                    st.session_state.unsaved_changes = False  # 🧠 mark clean state
+                except Exception as e:
+                    st.error(f"❌ Failed to save changes: {e}")
 
 
     # Totals
@@ -592,6 +592,7 @@ with save_col2:
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
