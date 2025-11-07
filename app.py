@@ -419,6 +419,15 @@ elif st.session_state.page == "create_project":
 # ----------------------
 # Project Page (Optimized)
 # ----------------------
+# --- Persistent editor state fix ---
+data_key = f"project_df_{project}"
+
+if data_key not in st.session_state:
+    st.session_state[data_key] = df.copy()
+    st.session_state[data_key].reset_index(drop=True, inplace=True)
+
+df_ref = st.session_state[data_key]  # Reference to the live DataFrame
+
 elif st.session_state.page == "project":
     st_autorefresh = st.empty()
     project = st.session_state.get("current_project")
@@ -494,17 +503,20 @@ elif st.session_state.page == "project":
         st.session_state[data_key] = df.copy()
     
     edited = st.data_editor(
-        st.session_state[data_key],
+        df_ref,
         num_rows="dynamic",
         use_container_width=True,
-        key=editor_key
+        key=f"editor_{project}"
     )
 
-# --- Detect edits & mark unsaved changes ---
-    if not edited.equals(st.session_state[data_key]):
-        st.session_state[data_key] = edited.copy()
-        st.session_state.project_df = edited.copy()
+# Only update if actual cell values changed
+    if not edited.equals(df_ref):
+    # Instead of replacing the DataFrame object,
+    # update it *in place* (this prevents Streamlit reset)
+        df_ref.loc[:, :] = edited
+        st.session_state.project_df = df_ref
         st.session_state.unsaved_changes = True
+
 
 # --- Show unsaved changes warning ---
     if st.session_state.get("unsaved_changes", False):
@@ -598,6 +610,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
