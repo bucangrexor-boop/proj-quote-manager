@@ -490,28 +490,41 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    # Ensure project_df exists (safe fallback)
-    if "project_df" not in st.session_state:
-        st.session_state.project_df = pd.DataFrame(columns=SHEET_HEADERS)
+    # ---------------------------------------------------
+    # ✅ Ensure per-project DF exists in session_state
+    # ---------------------------------------------------
+    session_key = f"project_df_{project}"
 
-    # Display editable table - work directly on df_ref (session copy)
-    edited = st.data_editor(
-        df_ref,
+    if session_key not in st.session_state:
+        st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
+
+    # This is the ONE source of truth for the editor
+    current_df = st.session_state[session_key]
+    
+# ---------------------------------------------------
+# ✅ Data editor — edit the session DF directly
+# ---------------------------------------------------
+    edited_df = st.data_editor(
+        current_df,
         num_rows="dynamic",
         use_container_width=True,
         key=f"editor_{project}"
     )
 
-    # Write edits back into the session copy (in-place)
-    if not edited.equals(df_ref):
-        # update the session DataFrame in-place to avoid swapping objects
-        st.session_state[session_key].loc[:, :] = edited
+# ---------------------------------------------------
+# ✅ Only update session DF if something changed
+# ---------------------------------------------------
+    if not edited_df.equals(current_df):
+        st.session_state[session_key] = edited_df.copy()
         st.session_state.unsaved_changes = True
 
-    # Unsaved changes warning
+# ---------------------------------------------------
+# ✅ Warning for unsaved edits
+# ---------------------------------------------------
     if st.session_state.get("unsaved_changes", False):
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
+    
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
     total = edited["Subtotal"].sum()
     try:
@@ -604,6 +617,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
