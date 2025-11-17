@@ -394,7 +394,14 @@ elif st.session_state.page == "project":
         st.session_state[f"{session_key}_loaded"] = True
 
     # df_ref is the live DataFrame the editor uses
-    df_ref = st.session_state[session_key]
+    df_clean = st.session_state[session_key].copy()
+
+    df_clean["Quantity"] = pd.to_numeric(df_clean["Quantity"], errors="coerce").fillna(0)
+    df_clean["Unit Price"] = pd.to_numeric(df_clean["Unit Price"], errors="coerce").fillna(0)
+    df_clean["Subtotal"] = (df_clean["Quantity"] * df_clean["Unit Price"]).round(2)
+
+    # Save cleaned version before editor → prevents "first key disappears"
+    st.session_state[session_key] = df_clean.copy()
 
     # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
@@ -579,6 +586,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
