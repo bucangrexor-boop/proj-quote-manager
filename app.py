@@ -1,10 +1,8 @@
-
 # ----------------------
 # Imports
 # ----------------------
 import io
 import json
-import math
 import time
 import numpy as np
 import pandas as pd
@@ -69,14 +67,16 @@ def open_spreadsheet():
 def worksheet_create_with_headers(ss, title: str):
     ws = ss.add_worksheet(title=title, rows=100, cols=20)
     ws.update([SHEET_HEADERS])
+    # write initial terms label cells so sheet is more user-friendly
     label_updates = [{"range": label_cell, "values": [[label]]} for label, label_cell, _ in TERMS_LABELS]
     ws.batch_update([{"range": u["range"], "values": u["values"]} for u in label_updates])
     return ws
 
+
 def df_from_worksheet(ws) -> pd.DataFrame:
     for attempt in range(3):
         try:
-            values = ws.get("A1:O100")
+            values = ws.get("A1:O200")
             if not values:
                 return pd.DataFrame(columns=SHEET_HEADERS)
 
@@ -97,7 +97,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
             df = df[SHEET_HEADERS]
             df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
             df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
-            df["Subtotal"] = df["Quantity"] * df["Unit Price"]
+            df["Subtotal"] = (df["Quantity"] * df["Unit Price"]).round(2)
             return df
 
         except APIError as e:
@@ -112,6 +112,7 @@ def df_from_worksheet(ws) -> pd.DataFrame:
             st.error(f"❌ Unexpected error while reading sheet: {e}")
             return pd.DataFrame(columns=SHEET_HEADERS)
     return pd.DataFrame(columns=SHEET_HEADERS)
+
 
 def read_terms_from_ws(ws) -> dict:
     terms = {}
@@ -143,14 +144,13 @@ def get_worksheet_with_retry(ss, project, retries=3, delay=1):
                 st.error(f"Failed to open worksheet '{project}'. Please try again in a few seconds.")
                 st.session_state.page = "welcome"
                 st.stop()
-                
+
+
 def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
-    # Helper: find last non-empty row in column A (1-indexed)
     def get_last_data_row(ws):
         try:
             colA = ws.col_values(1)
         except Exception:
-            # fallback: if col_values fails, derive from old_df length
             return len(old_df) + 1
         last = 0
         for i, val in enumerate(colA, start=1):
@@ -158,20 +158,17 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
                 last = i
         return last
 
-    # Normalize dataframes: keep types but replace np.nan with None for clarity
     old = old_df.replace({np.nan: None}).reset_index(drop=True)
     new = new_df.replace({np.nan: None}).reset_index(drop=True)
 
     old_len = len(old)
     new_len = len(new)
 
-    # QUICK LOG (visible in Streamlit): what we loaded
     try:
         st.write(f"apply_sheet_updates: old_len={old_len}, new_len={new_len}")
     except Exception:
         pass
 
-    # If sheet was empty -> write full sheet (header + all rows)
     if old_len == 0 and new_len > 0:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
         try:
@@ -181,15 +178,12 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
             st.error(f"❌ Error writing full sheet: {e}")
         return
 
-    # Find changed rows up to min_len (row-by-row equals)
     min_len = min(old_len, new_len)
     changed_rows = []
     for i in range(min_len):
-        # Compare row Series (this returns single boolean)
         if not new.loc[i, SHEET_HEADERS].equals(old.loc[i, SHEET_HEADERS]):
             changed_rows.append(i)
 
-    # Group contiguous changed rows
     def contiguous_blocks(indices):
         if not indices:
             return []
@@ -208,9 +202,8 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     blocks = contiguous_blocks(changed_rows)
 
-    # Update each changed block (convert to strings and empty for None)
     for (start_idx, end_idx) in blocks:
-        sheet_start_row = start_idx + 2  # header at row 1 => data starts row 2
+        sheet_start_row = start_idx + 2
         sheet_end_row = end_idx + 2
         block_df = new.loc[start_idx:end_idx, SHEET_HEADERS].fillna("").astype(str)
         values = block_df.values.tolist()
@@ -220,14 +213,11 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
         except Exception as e:
             st.error(f"❌ Error updating rows {sheet_start_row}-{sheet_end_row}: {e}")
 
-    # Handle appended rows (safe append using last non-empty row on the sheet)
     if new_len > old_len:
-        # Use actual last data row in sheet to find correct append position
-        last_data_row = get_last_data_row(ws)           # returns 1-indexed row of last non-empty cell in col A
-        start_index = old_len                           # index in DataFrame for first appended row (0-based)
+        last_data_row = get_last_data_row(ws)
+        start_index = old_len
         append_block = new.loc[start_index:new_len - 1, SHEET_HEADERS].fillna("").astype(str).values.tolist()
         if append_block:
-            # next row to write is last_data_row + 1
             start_row = last_data_row + 1
             end_row = start_row + len(append_block) - 1
             try:
@@ -236,7 +226,6 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
             except Exception as e:
                 st.error(f"❌ Error appending rows {start_row}-{end_row}: {e}")
 
-    # If rows were deleted in new_df -> safest to rewrite entire sheet
     if new_len < old_len:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
         try:
@@ -244,7 +233,8 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
             ws.update(f"A1:G{len(values)}", values)
         except Exception as e:
             st.error(f"❌ Error rewriting entire sheet: {e}")
-        
+
+
 def save_totals_to_ws(ws, total, vat, grand_total):
     updates = [
         {"range": "I9", "values": [["Total"]]},
@@ -257,17 +247,17 @@ def save_totals_to_ws(ws, total, vat, grand_total):
         {"range": "J11", "values": [[str(grand_total)]]},
     ]
     ws.batch_update(updates)
-        
+
 # ===============================================================
 # PDF Generator
 # ===============================================================
+
 def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-aa43-48230c6c1bf2.jpeg"):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=40, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
-    # Header
     try:
         logo = Image(logo_path, width=1.3 * inch, height=1.3 * inch)
     except Exception:
@@ -282,7 +272,6 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     header_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
     elements += [header_table, Spacer(1, 15), title, Spacer(1, 15)]
 
-    # Table
     data = [list(df.columns)] + df.values.tolist()
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
@@ -292,7 +281,6 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     ]))
     elements += [table, Spacer(1, 15)]
 
-    # Totals
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
@@ -308,7 +296,6 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     ]))
     elements += [total_table, Spacer(1, 20)]
 
-    # Terms
     elements.append(Paragraph("<b>TERMS & CONDITIONS</b>", styles["Heading4"]))
     for key, value in terms.items():
         elements += [Paragraph(f"<b>{key}:</b> {value}", styles["Normal"]), Spacer(1, 4)]
@@ -392,7 +379,7 @@ elif st.session_state.page == "create_project":
 # Project Page (Optimized) - REPLACEMENT BLOCK
 # ----------------------
 elif st.session_state.page == "project":
-    st_autorefresh = st.empty()
+    refresh_container = st.empty()
     project = st.session_state.get("current_project")
 
     # Get worksheet
@@ -405,7 +392,6 @@ elif st.session_state.page == "project":
     session_key = f"project_df_{project}"
     if session_key not in st.session_state:
         st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
-        # mark the project that was loaded (for potential future logic)
         st.session_state[f"{session_key}_loaded"] = True
 
     # df_ref is the live DataFrame the editor uses
@@ -420,12 +406,11 @@ elif st.session_state.page == "project":
         if st.button("🔄 Refresh", key="refresh_sheet"):
             with st.spinner("Reloading data..."):
                 reloaded = df_from_worksheet(ws)
-                # Overwrite session copy with freshly loaded DF
                 st.session_state[session_key] = reloaded.reset_index(drop=True)
                 df_ref = st.session_state[session_key]
                 st.session_state.unsaved_changes = False
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
-            st_autorefresh.empty()
+            refresh_container.empty()
 
     # Note: removed the + Row button per user's request
 
@@ -437,20 +422,12 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    # ---------------------------------------------------
-    # ✅ Ensure per-project DF exists in session_state
-    # ---------------------------------------------------
-    session_key = f"project_df_{project}"
-
-    if session_key not in st.session_state:
-        st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
-
     # This is the ONE source of truth for the editor
     current_df = st.session_state[session_key]
     
-# ---------------------------------------------------
-# ✅ Data editor — edit the session DF directly
-# ---------------------------------------------------
+    # ---------------------------------------------------
+    # ✅ Data editor — edit the session DF directly
+    # ---------------------------------------------------
     edited_df = st.data_editor(
         current_df,
         num_rows="dynamic",
@@ -458,23 +435,26 @@ elif st.session_state.page == "project":
         key=f"editor_{project}"
     )
 
-# ---------------------------------------------------
-# ✅ Only update session DF if something changed
-# ---------------------------------------------------
+    # ---------------------------------------------------
+    # ✅ Only update session DF if something changed
+    # ---------------------------------------------------
     if not edited_df.equals(current_df):
         st.session_state[session_key] = edited_df.copy()
         st.session_state.unsaved_changes = True
 
-# ---------------------------------------------------
-# ✅ Warning for unsaved edits
-# ---------------------------------------------------
+    # ---------------------------------------------------
+    # ✅ Warning for unsaved edits
+    # ---------------------------------------------------
     if st.session_state.get("unsaved_changes", False):
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
-    
+        
     current_df = st.session_state[session_key]
 
-# Make sure Subtotal is numeric
-    current_df["Subtotal"] = pd.to_numeric(current_df["Subtotal"], errors="coerce").fillna(0)
+    # Make sure Quantity/Unit Price/Subtotal are numeric and Subtotal is current
+    current_df["Quantity"] = pd.to_numeric(current_df["Quantity"], errors="coerce").fillna(0).astype(float)
+    current_df["Unit Price"] = pd.to_numeric(current_df["Unit Price"], errors="coerce").fillna(0).astype(float)
+    current_df["Subtotal"] = (current_df["Quantity"] * current_df["Unit Price"]).round(2)
+
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
     total = current_df["Subtotal"].sum()
     try:
@@ -492,35 +472,44 @@ elif st.session_state.page == "project":
                 try:
                     session_key = f"project_df_{project}"
 
-            # ✅ Get current edited DF (this is the one true source)
+                    # ✅ Get current edited DF (this is the one true source)
                     new_df = st.session_state[session_key].copy()
 
-            # ✅ Load sheet version for diff
+                    # ✅ Load sheet version for diff
                     old_df = df_from_worksheet(ws).reset_index(drop=True)
 
-            # ✅ Numeric cleanup
+                    # ✅ Numeric cleanup
                     for col in ["Quantity", "Unit Price", "Subtotal"]:
                         new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0).astype(float)
-        
-            # ✅ Recompute subtotal
+
+                    # ✅ Recompute subtotal
                     new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
 
-            # ✅ Ensure pure Python numbers (avoid numpy in gspread)
+                    # ✅ Ensure pure Python numbers (avoid numpy in gspread)
                     new_df = new_df.applymap(lambda x: x.item() if hasattr(x, "item") else x)
     
-            # ✅ Ensure Items always correct
+                    # ✅ Ensure Items always correct
                     new_df["Item"] = range(1, len(new_df) + 1)
 
-            # ✅ Write ONLY the changed rows
+                    # ✅ Write ONLY the changed rows
                     apply_sheet_updates(ws, old_df, new_df)
 
-            # ✅ Save totals below
-                    save_totals_to_ws(ws, total, vat, grand_total)
+                    # ✅ Recompute totals with the saved values (in case J8 changed externally)
+                    saved_total = new_df["Subtotal"].sum()
+                    saved_vat = saved_total * 0.12
+                    try:
+                        saved_discount = float(ws.acell("J8").value or 0)
+                    except Exception:
+                        saved_discount = 0.0
+                    saved_grand = saved_total + saved_vat - saved_discount
 
-            # ✅ Update session DF so editor stays in sync — critical fix!
+                    # ✅ Save totals below
+                    save_totals_to_ws(ws, saved_total, saved_vat, saved_grand)
+
+                    # ✅ Update session DF so editor stays in sync — critical fix!
                     st.session_state[session_key] = new_df.copy()
 
-            # ✅ Mark clean
+                    # ✅ Mark clean
                     st.session_state.unsaved_changes = False
 
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
@@ -565,68 +554,27 @@ elif st.session_state.page == "project":
         save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
 
+    # Export PDF: per your choice (C) always use latest saved sheet version
     if export_pdf:
-        terms = read_terms_from_ws(ws)
-        totals = {
-            "subtotal": total,
-            "discount": discount,
-            "vat": vat,
-            "total": grand_total
-        }
-        pdf_buffer = generate_pdf(project, edited, totals, terms)
-        st.download_button(
-            label="⬇️ Download Price Quote PDF",
-            data=pdf_buffer,
-            file_name=f"{project}_quotation.pdf",
-            mime="application/pdf"
-        )
+        try:
+            sheet_df = df_from_worksheet(ws)
+            terms = read_terms_from_ws(ws)
+            totals = {
+                "subtotal": sheet_df["Subtotal"].sum(),
+                "discount": float(ws.acell("J8").value or 0),
+                "vat": sheet_df["Subtotal"].sum() * 0.12,
+                "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
+            }
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms)
+            st.download_button(
+                label="⬇️ Download Price Quote PDF",
+                data=pdf_buffer,
+                file_name=f"{project}_quotation.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error(f"❌ Failed to generate PDF: {e}")
+
 # ===============================================================
 # End of File
 # ===============================================================
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
