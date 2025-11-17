@@ -447,13 +447,16 @@ elif st.session_state.page == "project":
     if st.session_state.get("unsaved_changes", False):
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
         
-    current_df = st.session_state[session_key]
+    # Always work on a copy to avoid triggering Streamlit reruns
+    current_df = st.session_state[session_key].copy()
 
-    # Make sure Quantity/Unit Price/Subtotal are numeric and Subtotal is current
+# Make sure numeric fields are correct
     current_df["Quantity"] = pd.to_numeric(current_df["Quantity"], errors="coerce").fillna(0).astype(float)
     current_df["Unit Price"] = pd.to_numeric(current_df["Unit Price"], errors="coerce").fillna(0).astype(float)
     current_df["Subtotal"] = (current_df["Quantity"] * current_df["Unit Price"]).round(2)
 
+# Save the computed version back to session state (won’t break the editor)
+    st.session_state[session_key] = current_df
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
     total = current_df["Subtotal"].sum()
     try:
@@ -577,4 +580,5 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
