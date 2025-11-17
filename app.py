@@ -73,38 +73,6 @@ def worksheet_create_with_headers(ss, title: str):
     ws.batch_update([{"range": u["range"], "values": u["values"]} for u in label_updates])
     return ws
 
-
-def save_df_to_worksheet(ws, df: pd.DataFrame):
-    import gspread
-    df = df.copy()
-    df["Item"] = [i + 1 for i in range(len(df))]
-    df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
-    df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
-    df["Subtotal"] = (df["Quantity"] * df["Unit Price"]).round(2)
-    df = df.fillna("").astype(str)
-
-    values = [SHEET_HEADERS] + df[SHEET_HEADERS].values.tolist()
-    end_row = len(values)
-    end_col = len(SHEET_HEADERS)
-    cell_range = f"A1:{gspread.utils.rowcol_to_a1(end_row, end_col)}"
-
-    for attempt in range(3):
-        try:
-            ws.batch_clear(["A1:G100"])
-            ws.update(cell_range, values)
-            return
-        except gspread.exceptions.APIError as e:
-            if attempt < 2:
-                time.sleep(2)
-            else:
-                st.error("❌ Google Sheets API error while saving. Please wait and try again.")
-                st.write(str(e))
-                return
-        except Exception as e:
-            st.error(f"❌ Unexpected error while saving: {e}")
-            return
-
-
 def df_from_worksheet(ws) -> pd.DataFrame:
     for attempt in range(3):
         try:
@@ -144,27 +112,6 @@ def df_from_worksheet(ws) -> pd.DataFrame:
             st.error(f"❌ Unexpected error while reading sheet: {e}")
             return pd.DataFrame(columns=SHEET_HEADERS)
     return pd.DataFrame(columns=SHEET_HEADERS)
-
-
-@st.cache_data(ttl=600)
-def df_from_worksheet_cached(spreadsheet_key, worksheet_title):
-    client = get_gspread_client()
-    ss = client.open_by_key(spreadsheet_key)
-    ws = ss.worksheet(worksheet_title)
-    values = ws.get_all_values()
-    if not values:
-        return pd.DataFrame(columns=SHEET_HEADERS)
-
-    df = pd.DataFrame(values[1:], columns=values[0])
-    for col in SHEET_HEADERS:
-        if col not in df.columns:
-            df[col] = ""
-    df = df[SHEET_HEADERS]
-    df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
-    df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
-    df["Subtotal"] = df["Quantity"] * df["Unit Price"]
-    return df
-
 
 def read_terms_from_ws(ws) -> dict:
     terms = {}
@@ -636,6 +583,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
