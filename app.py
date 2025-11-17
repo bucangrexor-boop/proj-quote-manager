@@ -165,7 +165,7 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
     new_len = len(new)
 
     try:
-        st.write(f"apply_sheet_updates: old_len={old_len}, new_len={new_len}")
+        st.write(f"ok")
     except Exception:
         pass
 
@@ -208,7 +208,6 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
         block_df = new.loc[start_idx:end_idx, SHEET_HEADERS].fillna("").astype(str)
         values = block_df.values.tolist()
         try:
-            st.write(f"Updating rows {sheet_start_row}..{sheet_end_row} -> {len(values)} rows")
             ws.update(f"A{sheet_start_row}:G{sheet_end_row}", values)
         except Exception as e:
             st.error(f"❌ Error updating rows {sheet_start_row}-{sheet_end_row}: {e}")
@@ -578,3 +577,4 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
