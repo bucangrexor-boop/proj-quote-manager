@@ -250,69 +250,116 @@ def save_totals_to_ws(ws, total, vat, grand_total):
 # ===============================================================
 # PDF Generator
 # ===============================================================
+def generate_pdf(project_name, df, totals, terms, 
+                 left_logo_path=None, right_logo_path=None):
 
-def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-aa43-48230c6c1bf2.jpeg"):
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=30, leftMargin=30, topMargin=40, bottomMargin=30)
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            rightMargin=30, leftMargin=30,
+                            topMargin=40, bottomMargin=30)
+
     elements = []
     styles = getSampleStyleSheet()
 
-    try:
-        logo = Image(r"C:\Users\Rexor Bucang\Downloads\logoants.png", width=2.53 * inch, height=1.04 * inch)
-    except Exception:
-        logo = None
+    # Load logos (safe-loading)
+    def load_logo(path, width=1.8*inch):
+        if not path:
+            return ""
+        try:
+            return Image(path, width=width, preserveAspectRatio=True, hAlign='LEFT')
+        except:
+            return ""
 
-    company_title = Paragraph("<b>aNTS Technologies, Inc.</b>", ParagraphStyle('title', fontSize=16, leading=18))
-    tagline = Paragraph("Solutions for a Small Planet", ParagraphStyle('tagline', fontSize=10, textColor=colors.gray))
-    title = Paragraph("<b>PRICE QUOTE</b>", ParagraphStyle('title', fontSize=16, alignment=1))
-    project = Paragraph(f"<b>Project:</b> {project_name}", ParagraphStyle('normal', fontSize=11))
-    date_p = Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", ParagraphStyle('normal', fontSize=11))
-    header_table = Table([[logo, [company_title, tagline, Spacer(1, 6), project, date_p]]], colWidths=[1.5 * inch, 4.5 * inch])
-    header_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
-    elements += [header_table, Spacer(1, 15), title, Spacer(1, 15)]
+    left_logo = load_logo(left_logo_path)
+    right_logo = load_logo(right_logo_path)
 
+    # ------------------------------------------
+    # HEADER (2 columns)
+    # ------------------------------------------
+    header_table = Table(
+        [[left_logo, right_logo]],
+        colWidths=[3*inch, 3*inch]
+    )
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10)
+    ]))
+
+    elements.append(header_table)
+    elements.append(Spacer(1, 12))
+
+    # ------------------------------------------
+    # CENTER TITLE BLOCK
+    # ------------------------------------------
+    title = Paragraph("<b>PRICE QUOTE</b>", ParagraphStyle(
+        'TitleCenter', fontSize=18, alignment=1, leading=22
+    ))
+
+    ref_no = Paragraph(
+        f"<b>Ref No:</b> {project_name}",
+        ParagraphStyle('Ref', fontSize=11, alignment=1)
+    )
+
+    elements.extend([title, Spacer(1, 4), ref_no, Spacer(1, 20)])
+
+    # ------------------------------------------
+    # MAIN TABLE
+    # ------------------------------------------
     data = [list(df.columns)] + df.values.tolist()
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER")
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
-    elements += [table, Spacer(1, 15)]
+    elements.append(table)
+    elements.append(Spacer(1, 15))
 
+    # ------------------------------------------
+    # TOTALS TABLE
+    # ------------------------------------------
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
-        ["TOTAL", f"₱ {totals['total']:.2f}"]
+        ["TOTAL", f"₱ {totals['total']:.2f}"],
     ]
-    total_table = Table(total_data, colWidths=[4 * inch, 2.5 * inch])
-    total_table.setStyle(TableStyle([
+    totals_table = Table(total_data, colWidths=[4*inch, 2.3*inch])
+    totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen),
         ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen)
     ]))
-    elements += [total_table, Spacer(1, 20)]
 
+    elements.append(totals_table)
+    elements.append(Spacer(1, 20))
+
+    # ------------------------------------------
+    # TERMS & CONDITIONS
+    # ------------------------------------------
     elements.append(Paragraph("<b>TERMS & CONDITIONS</b>", styles["Heading4"]))
-    for key, value in terms.items():
-        elements += [Paragraph(f"<b>{key}:</b> {value}", styles["Normal"]), Spacer(1, 4)]
+    for k, v in terms.items():
+        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
+        elements.append(Spacer(1, 4))
 
-    elements += [
+    # ------------------------------------------
+    # SIGN-OFF
+    # ------------------------------------------
+    elements.extend([
         Spacer(1, 20),
         Paragraph("Prepared by:", styles["Normal"]),
         Spacer(1, 30),
         Paragraph("<b>_________________________</b>", styles["Normal"]),
         Paragraph("aNTS Technologies, Inc.", styles["Normal"]),
-        Spacer(1, 10),
+        Spacer(1, 15),
         Paragraph("<i>Thank you for doing business with us!</i>", styles["Italic"])
-    ]
+    ])
 
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
 
 # ===============================================================
 # UI Pages
@@ -573,7 +620,15 @@ elif st.session_state.page == "project":
                 "vat": sheet_df["Subtotal"].sum() * 0.12,
                 "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
             }
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms)
+            pdf_buffer = generate_pdf(
+                project,
+                sheet_df,
+                totals,
+                terms,
+                left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png" ,
+                right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
+                )
+
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
@@ -586,6 +641,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
