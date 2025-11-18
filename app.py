@@ -258,7 +258,7 @@ def generate_pdf(project_name, df, totals, terms, logo_path="90580b01-f401-47f5-
     styles = getSampleStyleSheet()
 
     try:
-        logo = Image(logo_path, width=1.3 * inch, height=1.3 * inch)
+        logo = Image(r"C:\Users\Rexor Bucang\Downloads\logoants.png", width=2.53 * inch, height=1.04 * inch)
     except Exception:
         logo = None
 
@@ -586,6 +586,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
