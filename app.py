@@ -620,6 +620,7 @@ elif st.session_state.page == "project":
                 "vat": sheet_df["Subtotal"].sum() * 0.12,
                 "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
             }
+            if st.button("Export PDF"):
                pdf_buffer = generate_pdf(
                     project,
                     sheet_df,
