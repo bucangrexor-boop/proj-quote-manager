@@ -628,20 +628,21 @@ elif st.session_state.page == "project":
                     terms,
                     left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
                     right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
-                    )
+                )
 
-            st.download_button(
-                label="⬇️ Download Price Quote PDF",
-                data=pdf_buffer,
-                file_name=f"{project}_quotation.pdf",
-                mime="application/pdf"
-            )
-        except Exception as e:
-            st.error(f"❌ Failed to generate PDF: {e}")
+                st.download_button(
+                    label="⬇️ Download Price Quote PDF",
+                    data=pdf_buffer,
+                    file_name=f"{project}_quotation.pdf",
+                    mime="application/pdf"
+                )
+            except Exception as e:
+                st.error(f"❌ Failed to generate PDF: {e}")
 
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
