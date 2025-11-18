@@ -621,15 +621,16 @@ elif st.session_state.page == "project":
         saved_office = ws.acell("J15").value or ""
         saved_company = ws.acell("J16").value or ""
         saved_message = ws.acell("J17").value or ""
+        saved_editedby = ws.acell("J18").value or ""
     except:
-        saved_title = saved_office = saved_company = saved_message = ""
+        saved_title = saved_office = saved_company = saved_message = saved_editedby =""
 
     colA, colB = st.columns(2)
 
     with colA:
         title_input = st.text_input("Title", value=saved_title)
         office_input = st.text_input("Office", value=saved_office)
-
+        editedby_input = st.tect_input("Edited By", value=saved_editedby)
     with colB:
         company_input = st.text_input("Company", value=saved_company)
 
@@ -648,6 +649,9 @@ elif st.session_state.page == "project":
 
             {"range": "I17", "values": [["Message"]]},
             {"range": "J17", "values": [[message_input]]},
+            
+            {"range": "I18", "values": [["Edited By"]]},
+            {"range": "J18", "values": [[editedby_input]]},
         ]
         ws.batch_update(updates)
         st.success("Client information saved!")
@@ -679,6 +683,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
