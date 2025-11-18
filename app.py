@@ -620,7 +620,10 @@ elif st.session_state.page == "project":
                 "vat": sheet_df["Subtotal"].sum() * 0.12,
                 "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
             }
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms)
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, 
+                left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
+                right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
+            )
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
@@ -633,6 +636,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
