@@ -250,7 +250,7 @@ def save_totals_to_ws(ws, total, vat, grand_total):
 # ===============================================================
 # PDF Generator
 # ===============================================================
-def generate_pdf(project_name, df, totals, terms, 
+def generate_pdf(project_name, df, totals, terms, client_info=None,
                  left_logo_path=None, right_logo_path=None):
 
     buffer = io.BytesIO()
@@ -261,7 +261,7 @@ def generate_pdf(project_name, df, totals, terms,
     elements = []
     styles = getSampleStyleSheet()
 
-    # Load logos (safe-loading)
+    # Load logos safely
     def load_logo(path, width=1.8*inch):
         if not path:
             return ""
@@ -270,12 +270,11 @@ def generate_pdf(project_name, df, totals, terms,
         except:
             return ""
 
-    left_logo = load_logo(left_logo_path)
-    right_logo = load_logo(right_logo_path)
-
-    # ------------------------------------------
-    # HEADER (2 columns)
-    # ------------------------------------------
+    left_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\logoants.png")
+    right_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\antslogo2.png")
+    # -----------------------
+    # Header (logos)
+    # -----------------------
     header_table = Table(
         [[left_logo, right_logo]],
         colWidths=[3*inch, 3*inch]
@@ -285,9 +284,95 @@ def generate_pdf(project_name, df, totals, terms,
         ("ALIGN", (1, 0), (1, 0), "RIGHT"),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 10)
     ]))
-
     elements.append(header_table)
     elements.append(Spacer(1, 12))
+
+    # -----------------------
+    # Ref No and Date
+    # -----------------------
+    ref_para = Paragraph(f"<b>Ref No:</b> {project_name}", styles["Normal"])
+    date_para = Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", styles["Normal"])
+    ref_date_table = Table([[ref_para, date_para]], colWidths=[3*inch, 3*inch])
+    ref_date_table.setStyle(TableStyle([
+        ("ALIGN", (0, 0), (0, 0), "CENTER"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12)
+    ]))
+    elements.append(ref_date_table)
+    elements.append(Spacer(1, 12))
+
+    # -----------------------
+    # Client Information
+    # -----------------------
+    if client_info:
+        elements.append(Paragraph(client_info.get("Title", ""), styles["Normal"]))
+        elements.append(Spacer(1, 6))
+        elements.append(Paragraph(client_info.get("Office", ""), styles["Normal"]))
+        elements.append(Paragraph(client_info.get("Company", ""), styles["Normal"]))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph("Dear Maam/Sir:", styles["Normal"]))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(client_info.get("Message", ""), styles["Normal"]))
+        elements.append(Spacer(1, 12))
+
+    # -----------------------
+    # Quotation Table
+    # -----------------------
+    data = [list(df.columns)] + df.values.tolist()
+    table = Table(data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1, 15))
+
+    # -----------------------
+    # Totals Table
+    # -----------------------
+    total_data = [
+        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
+        ["Discount", f"₱ {totals['discount']:.2f}"],
+        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
+        ["TOTAL", f"₱ {totals['total']:.2f}"],
+    ]
+    totals_table = Table(total_data, colWidths=[4*inch, 2.3*inch])
+    totals_table.setStyle(TableStyle([
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen),
+        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+    ]))
+    elements.append(totals_table)
+    elements.append(Spacer(1, 20))
+
+    # -----------------------
+    # Terms & Conditions
+    # -----------------------
+    for k, v in terms.items():
+        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
+        elements.append(Spacer(1, 4))
+    elements.append(Spacer(1, 12))
+
+    # -----------------------
+    # Sign-off
+    # -----------------------
+    elements.append(Paragraph("Thank you for doing business with us!", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph("Respectfully yours,", styles["Normal"]))
+    elements.append(Spacer(1, 36))
+    if client_info:
+        elements.append(Paragraph(client_info.get("Edited By", ""), styles["Normal"]))
+
+    # -----------------------
+    # Build PDF
+    # -----------------------
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
 
     # ------------------------------------------
     # CENTER TITLE BLOCK
@@ -683,6 +768,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
