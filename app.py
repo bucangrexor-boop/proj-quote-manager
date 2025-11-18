@@ -609,48 +609,30 @@ elif st.session_state.page == "project":
         save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
 
-    if export_pdf:
-        try:
-            sheet_df = df_from_worksheet(ws)
+        if export_pdf:
             terms = read_terms_from_ws(ws)
-
-            subtotal = sheet_df["Subtotal"].sum()
-            discount = float(ws.acell("J8").value or 0)
-            vat = subtotal * 0.12
-            total = subtotal + vat - discount
-
             totals = {
-                "subtotal": subtotal,
+                "subtotal": total,
                 "discount": discount,
                 "vat": vat,
-                "total": total
+                "total": grand_total
             }
-
-            # Export PDF button
-            if st.button("Export PDF"):
-                pdf_buffer = generate_pdf(
-                    project,
-                    sheet_df,
-                    totals,
-                    terms,
-                    left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
-                    right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms,
+                left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
+                right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
                 )
-            
-                # Show the download button only after generating the PDF
-                st.download_button(
-                    label="⬇️ Download Price Quote PDF",
-                    data=pdf_buffer,
-                    file_name=f"{project}_quotation.pdf",
-                    mime="application/pdf"
-                )
-
+            st.download_button(
+                label="⬇️ Download Price Quote PDF",
+                data=pdf_buffer,
+                file_name=f"{project}_quotation.pdf",
+                mime="application/pdf"
+            )
         except Exception as e:
             st.error(f"❌ Failed to generate PDF: {e}")
-
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
