@@ -623,17 +623,17 @@ elif st.session_state.page == "project":
         saved_message = ws.acell("J17").value or ""
         saved_editedby = ws.acell("J18").value or ""
     except:
-        saved_title = saved_office = saved_company = saved_message = saved_editedby =""
+        saved_title = saved_office = saved_company = saved_message = saved_editedby = ""
 
     colA, colB = st.columns(2)
 
     with colA:
         title_input = st.text_input("Title", value=saved_title)
         office_input = st.text_input("Office", value=saved_office)
-        editedby_input = st.tect_input("Edited By", value=saved_editedby)
     with colB:
         company_input = st.text_input("Company", value=saved_company)
-
+        editedby_input = st.text_input("Edited By", value=saved_editedby)
+        
     message_input = st.text_area("Message", value=saved_message, height=120)
 
     if st.button("Save Client Info"):
@@ -683,6 +683,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
