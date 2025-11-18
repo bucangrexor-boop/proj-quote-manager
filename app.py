@@ -752,7 +752,15 @@ elif st.session_state.page == "project":
                 "vat": sheet_df["Subtotal"].sum() * 0.12,
                 "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
             }
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, 
+            client_info = {
+                "Title": ws.acell("J14").value or "",
+                "Office": ws.acell("J15").value or "",
+                "Company": ws.acell("J16").value or "",
+                "Message": ws.acell("J17").value or "",
+                "Edited By": ws.acell("J18").value or ""
+            }
+
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info,
                 left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
                 right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
             )
@@ -768,6 +776,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
