@@ -293,7 +293,7 @@ def generate_pdf(project_name, df, totals, terms,
     # CENTER TITLE BLOCK
     # ------------------------------------------
     title = Paragraph("<b>PRICE QUOTE</b>", ParagraphStyle(
-        'TitleCenter', fontSize=18, alignment=1, leading=22
+        'TitleCenter', fontSize=11, alignment=1, leading=22
     ))
 
     ref_no = Paragraph(
@@ -339,7 +339,7 @@ def generate_pdf(project_name, df, totals, terms,
     # ------------------------------------------
     # TERMS & CONDITIONS
     # ------------------------------------------
-    elements.append(Paragraph("<b>TERMS & CONDITIONS</b>", styles["Heading4"]))
+    elements.append(Paragraph(" ", styles["Heading4"]))
     for k, v in terms.items():
         elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
         elements.append(Spacer(1, 4))
@@ -636,6 +636,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
