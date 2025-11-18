@@ -608,6 +608,49 @@ elif st.session_state.page == "project":
         })
         save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
+        
+    # ---------------------------------------------
+    # Additional Contact Info Form (J14–J17)
+    # ---------------------------------------------
+    st.markdown("---")
+    st.subheader("Client Information")
+
+    # Load existing values
+    try:
+        saved_title = ws.acell("J14").value or ""
+        saved_office = ws.acell("J15").value or ""
+        saved_company = ws.acell("J16").value or ""
+        saved_message = ws.acell("J17").value or ""
+    except:
+        saved_title = saved_office = saved_company = saved_message = ""
+
+    colA, colB = st.columns(2)
+
+    with colA:
+        title_input = st.text_input("Title", value=saved_title)
+        office_input = st.text_input("Office", value=saved_office)
+
+    with colB:
+        company_input = st.text_input("Company", value=saved_company)
+
+    message_input = st.text_area("Message", value=saved_message, height=120)
+
+    if st.button("Save Client Info"):
+        updates = [
+            {"range": "I14", "values": [["Title"]]},
+            {"range": "J14", "values": [[title_input]]},
+
+            {"range": "I15", "values": [["Office"]]},
+            {"range": "J15", "values": [[office_input]]},
+    
+            {"range": "I16", "values": [["Company"]]},
+            {"range": "J16", "values": [[company_input]]},
+
+            {"range": "I17", "values": [["Message"]]},
+            {"range": "J17", "values": [[message_input]]},
+        ]
+        ws.batch_update(updates)
+        st.success("Client information saved!")
 
     # Export PDF: per your choice (C) always use latest saved sheet version
     if export_pdf:
@@ -636,6 +679,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
