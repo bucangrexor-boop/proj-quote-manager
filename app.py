@@ -609,18 +609,18 @@ elif st.session_state.page == "project":
         save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
 
-        if export_pdf:
+    # Export PDF: per your choice (C) always use latest saved sheet version
+    if export_pdf:
+        try:
+            sheet_df = df_from_worksheet(ws)
             terms = read_terms_from_ws(ws)
             totals = {
-                "subtotal": total,
-                "discount": discount,
-                "vat": vat,
-                "total": grand_total
+                "subtotal": sheet_df["Subtotal"].sum(),
+                "discount": float(ws.acell("J8").value or 0),
+                "vat": sheet_df["Subtotal"].sum() * 0.12,
+                "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
             }
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms,
-                left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
-                right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
-                )
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms)
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
@@ -629,9 +629,11 @@ elif st.session_state.page == "project":
             )
         except Exception as e:
             st.error(f"❌ Failed to generate PDF: {e}")
+
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
