@@ -330,8 +330,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         except:
             return ""
 
-    left_logo = load_logo(left_logo_path)
-    right_logo = load_logo(right_logo_path)
+    left_logo = load_logo(r"C:\Users\Rexor Bucang\OneDrive - University of the Cordilleras\Desktop\logoants.png")
+    right_logo = load_logo(r"C:\Users\Rexor Bucang\OneDrive - University of the Cordilleras\Desktop\antslogo2.png")
 
     # -----------------------
     # Header (logos)
@@ -854,6 +854,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
