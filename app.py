@@ -347,7 +347,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         width = 182 * 0.75
                         height = 75 * 0.75)
     right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
-                        width=303 * 0.75,
+                        width=303 * 0.75
                         height=26 * 0.75)    
     # -----------------------
     # Header (logos)
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
