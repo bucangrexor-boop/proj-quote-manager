@@ -505,7 +505,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     ]))
 
     elements.append(totals_table)
-elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 12))
 
     # -----------------------
     # Terms & Conditions
@@ -864,6 +864,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
