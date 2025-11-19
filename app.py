@@ -272,6 +272,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     left_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\logoants.png")
     right_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\antslogo2.png")
+
     # -----------------------
     # Header (logos)
     # -----------------------
@@ -285,36 +286,55 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BOTTOMPADDING", (0, 0), (-1, -1), 10)
     ]))
     elements.append(header_table)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 20))
 
     # -----------------------
-    # Ref No and Date
+    # CENTERED TITLE + REF NO
     # -----------------------
-    ref_para = Paragraph(f"<b>Ref No:</b> {project_name}", styles["Normal"])
-    date_para = Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", styles["Normal"])
-    ref_date_table = Table([[ref_para, date_para]], colWidths=[3*inch, 3*inch])
-    ref_date_table.setStyle(TableStyle([
-        ("ALIGN", (0, 0), (0, 0), "CENTER"),
-        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 12)
-    ]))
-    elements.append(ref_date_table)
-    elements.append(Spacer(1, 12))
+    title_style = styles["Heading2"]
+    title_style.alignment = 1  # CENTER
+
+    elements.append(Paragraph("P R I C E   Q U O T E", title_style))
+
+    ref_style = styles["Normal"]
+    ref_style.alignment = 1  # CENTER
+    elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
+    elements.append(Spacer(1, 20))
 
     # -----------------------
-    # Client Information
+    # DATE (right aligned)
+    # -----------------------
+    date_str = datetime.now().strftime("%d-%b-%y")
+    date_line = Paragraph(
+        f'<para alignment="right"><b>Date</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{date_str}</para>',
+        styles["Normal"]
+    )
+    elements.append(date_line)
+    elements.append(Spacer(1, 30))
+
+    # -----------------------
+    # Client Information (format exactly as requested)
     # -----------------------
     if client_info:
-        elements.append(Paragraph(client_info.get("Title", ""), styles["Normal"]))
+
+        # Title
+        elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", styles["Normal"]))
         elements.append(Spacer(1, 6))
-        elements.append(Paragraph(client_info.get("Office", ""), styles["Normal"]))
+
+        # Office
+        elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", styles["Normal"]))
+
+        # Company
         elements.append(Paragraph(client_info.get("Company", ""), styles["Normal"]))
+        elements.append(Spacer(1, 20))
+
+        # Greeting
+        elements.append(Paragraph("Dear Sir:", styles["Normal"]))
         elements.append(Spacer(1, 12))
-        elements.append(Paragraph("Dear Maam/Sir:", styles["Normal"]))
-        elements.append(Spacer(1, 12))
+
+        # Main Message
         elements.append(Paragraph(client_info.get("Message", ""), styles["Normal"]))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 20))
 
     # -----------------------
     # Quotation Table
@@ -363,8 +383,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Respectfully yours,", styles["Normal"]))
     elements.append(Spacer(1, 36))
+
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), styles["Normal"]))
+
+    # -----------------------
+    # Build PDF
+    # -----------------------
+    doc.build(elements)
+    buffer.seek(0)
+    return buffer
+
 
     # -----------------------
     # Build PDF
@@ -776,6 +805,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
