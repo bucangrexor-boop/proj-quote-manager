@@ -273,8 +273,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=30, leftMargin=30,
-                            topMargin=40, bottomMargin=30)
+                            rightMargin=72, leftMargin=72,
+                            topMargin=72, bottomMargin=72)
 
     elements = []
     styles = getSampleStyleSheet()
@@ -828,6 +828,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
