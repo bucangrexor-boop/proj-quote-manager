@@ -848,8 +848,8 @@ elif st.session_state.page == "project":
             }
 
             pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info,
-                left_logo_path=r"C:\Users\Rexor Bucang\Downloads\logoants.png",
-                right_logo_path=r"C:\Users\Rexor Bucang\Downloads\antslogo2.png"
+                left_logo ="https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
+                right_logo ="https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png"
             )
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
@@ -863,6 +863,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
