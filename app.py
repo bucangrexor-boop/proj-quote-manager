@@ -25,7 +25,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
-from reportlab.platypus import Image
+from reportlab.platypus import Image as RLImage
 
 # Streamlit Configuration
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
@@ -332,13 +332,16 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                 response = requests.get(url_or_path)
                 response.raise_for_status()
                 image_data = BytesIO(response.content)
-                return Image(ImageReader(image_data), width=width, preserveAspectRatio=True, hAlign='LEFT')
+                img = RLImage(image_data, width=width, height=None)  # height=None keeps aspect ratio
             else:
-                # Local file
-                return Image(ImageReader(url_or_path), width=width, preserveAspectRatio=True, hAlign='LEFT')
+                img = RLImage(url_or_path, width=width, height=None)
+            img.hAlign = 'LEFT'
+            return img
         except Exception as e:
             print("Failed to load logo:", e)
-            return ""
+        # Use a transparent spacer instead of empty string
+            from reportlab.platypus import Spacer
+            return Spacer(width, width * 0.5)
 
     left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png")
     right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png")
@@ -863,6 +866,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
