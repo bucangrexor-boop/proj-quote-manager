@@ -389,8 +389,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Quotation Table
     # -----------------------
     data = [df.columns.tolist()] + df.values.tolist()
-
-# Column width tuning (adjust if needed)
+    PAGE_WIDTH, PAGE_HEIGHT = A4
+    available_width = PAGE_WIDTH - (0.75 * inch * 2)             
     col_widths = [
         0.6 * inch,   # Item No
         1.2 * inch,   # Part Number
@@ -400,9 +400,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         1.0 * inch,   # Unit Price
         1.2 * inch,   # Subtotal
     ]
-
-    table = Table(data, colWidths=col_widths, repeatRows=1)
-
+    table = Table(table_data, colWidths=col_widths)
     table.setStyle(TableStyle([
     # Grid lines
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
@@ -828,6 +826,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
