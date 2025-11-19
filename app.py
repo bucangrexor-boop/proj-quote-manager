@@ -418,26 +418,23 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # --------------------------------
 
     # WRAP LONG DESCRIPTION
-        description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
-
+    description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
     # QUANTITY → FORCE INTEGER (NO DECIMALS)
-        qty_raw = row.get("Quantity", 0)
-        try:
-            qty = int(float(qty_raw))
-        except:
-            qty = 0
-
+    qty_raw = row.get("Quantity", 0)
+    try:
+         qty = int(float(qty_raw))
+     except:
+         qty = 0
     # Append row to table
-        table_data.append([
-            item_no,
-            str(row.get("Part Number", "") or ""),
-            description,
-            qty,  # integer-only quantity
-            str(row.get("Unit", "") or ""),
-            f"{row.get('Unit Price', 0):.2f}",
-            f"{row.get('Subtotal', 0):.2f}",
+    table_data.append([
+        item_no,
+        str(row.get("Part Number", "") or ""),
+        description,
+        qty,  # integer-only quantity
+        str(row.get("Unit", "") or ""),
+        f"{row.get('Unit Price', 0):.2f}",
+        f"{row.get('Subtotal', 0):.2f}",
         ])
-
 # ----------------------------------------------------
 # COLUMN WIDTHS BASED ON ACTUAL AVAILABLE PAGE SPACE
 # ----------------------------------------------------
@@ -864,3 +861,4 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
