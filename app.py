@@ -19,6 +19,8 @@ from reportlab.platypus import (
     SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 
 # Streamlit Configuration
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
@@ -251,6 +253,13 @@ def save_totals_to_ws(ws, total, vat, grand_total):
 # ===============================================================
 # PDF Generator
 # ===============================================================
+# Register Fonts
+pdfmetrics.registerFont(TTFont('Arial', r'C:\Windows\Fonts\arial.ttf'))
+pdfmetrics.registerFont(TTFont('Arial-Bold', r'C:\Windows\Fonts\arialbd.ttf'))
+pdfmetrics.registerFont(TTFont('Arial-Narrow', r'C:\Windows\Fonts\ARIALN.TTF'))
+pdfmetrics.registerFont(TTFont('Calibri', r'C:\Windows\Fonts\calibri.ttf'))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', r'C:\Windows\Fonts\calibrib.ttf'))
+
 def generate_pdf(project_name, df, totals, terms, client_info=None,
                  left_logo_path=None, right_logo_path=None):
 
@@ -262,7 +271,49 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements = []
     styles = getSampleStyleSheet()
 
+    # -----------------------
+    # Custom Styles
+    # -----------------------
+    price_quote_style = ParagraphStyle(
+        "PriceQuote",
+        fontName="Calibri-Bold",
+        fontSize=12,
+        alignment=1  # CENTER
+    )
+    ref_style = ParagraphStyle(
+        "RefStyle",
+        fontName="Arial-Narrow",
+        fontSize=11,
+        alignment=1  # CENTER
+    )
+    title_style = ParagraphStyle(
+        "TitleStyle",
+        fontName="Arial-Bold",
+        fontSize=12,
+        alignment=0  # LEFT
+    )
+    office_style = ParagraphStyle(
+        "OfficeStyle",
+        fontName="Arial-Bold",
+        fontSize=11,
+        alignment=0
+    )
+    normal_style = ParagraphStyle(
+        "NormalStyle",
+        fontName="Arial",
+        fontSize=11,
+        alignment=0
+    )
+    table_header_style = ParagraphStyle(
+        "TableHeader",
+        fontName="Arial-Bold",
+        fontSize=11,
+        alignment=1  # CENTER
+    )
+
+    # -----------------------
     # Load logos safely
+    # -----------------------
     def load_logo(path, width=1.8*inch):
         if not path:
             return ""
@@ -271,8 +322,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         except:
             return ""
 
-    left_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\logoants.png")
-    right_logo = load_logo(r"C:\Users\Rexor Bucang\Downloads\antslogo2.png")
+    left_logo = load_logo(left_logo_path)
+    right_logo = load_logo(right_logo_path)
 
     # -----------------------
     # Header (logos)
@@ -290,60 +341,51 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(Spacer(1, 20))
 
     # -----------------------
-    # CENTERED TITLE + REF NO
+    # Price Quote Title
     # -----------------------
-    title_style = styles["Heading2"]
-    title_style.alignment = 1  # CENTER
+    elements.append(Paragraph("P R I C E   Q U O T E", price_quote_style))
+    elements.append(Spacer(1, 10))
 
-    elements.append(Paragraph("P R I C E   Q U O T E", title_style))
-
-    ref_style = styles["Normal"]
-    ref_style.alignment = 1  # CENTER
+    # -----------------------
+    # Ref No.
+    # -----------------------
     elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 10))
 
     # -----------------------
-    # DATE (right aligned)
+    # Date
     # -----------------------
     date_str = datetime.now().strftime("%d-%b-%y")
     date_line = Paragraph(
         f'<para alignment="right"><b>Date</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{date_str}</para>',
-        styles["Normal"]
+        ref_style
     )
     elements.append(date_line)
-    elements.append(Spacer(1, 30))
+    elements.append(Spacer(1, 20))
 
-#client infor---------
+    # -----------------------
+    # Client Info
+    # -----------------------
     if client_info:
-    # Create a NEW STYLE that does NOT affect Normal
-        left_style = ParagraphStyle(
-            "left_style",
-            parent=styles["Normal"],
-            alignment=0   # LEFT ALIGN
-        )
-    # Title
-        elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", left_style))
+        elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
         elements.append(Spacer(1, 6))
-    # Office
-        elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", left_style))
-    # Company
-        elements.append(Paragraph(client_info.get("Company", ""), left_style))
+        elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", office_style))
+        elements.append(Paragraph(client_info.get("Company", ""), normal_style))
         elements.append(Spacer(1, 20))
-    # Greeting
-        elements.append(Paragraph("Dear Sir:", left_style))
+        elements.append(Paragraph("Dear Sir:", normal_style))
         elements.append(Spacer(1, 12))
-    # Main Message
-        elements.append(Paragraph(client_info.get("Message", ""), left_style))
+        elements.append(Paragraph(client_info.get("Message", ""), normal_style))
         elements.append(Spacer(1, 20))
 
     # -----------------------
     # Quotation Table
     # -----------------------
-    data = [list(df.columns)] + df.values.tolist()
+    data = [df.columns.tolist()] + df.values.tolist()
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
         ("ALIGN", (0, 0), (-1, -1), "CENTER"),
     ]))
     elements.append(table)
@@ -362,8 +404,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
         ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+        ("FONTNAME", (0, 0), (-1, -2), "Arial"),
+        ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
         ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen),
-        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
     ]))
     elements.append(totals_table)
     elements.append(Spacer(1, 20))
@@ -372,21 +415,22 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Terms & Conditions
     # -----------------------
     for k, v in terms.items():
-        elements.append(Paragraph(f"<b>{k}:</b> {v}", left_style))
+        elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
         elements.append(Spacer(1, 4))
     elements.append(Spacer(1, 12))
 
     # -----------------------
     # Sign-off
     # -----------------------
-    elements.append(Paragraph("Thank you for doing business with us!", left_style))
+    elements.append(Paragraph("Thank you for doing business with us!", normal_style))
     elements.append(Spacer(1, 12))
-    elements.append(Paragraph("Respectfully yours,", left_style))
+    elements.append(Paragraph("Respectfully yours,", normal_style))
     elements.append(Spacer(1, 36))
 
     if client_info:
-        elements.append(Paragraph(client_info.get("Edited By", ""), left_style))
-        elements.append(Paragraph("Ants Technologies Inc.", left_style))
+        elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
+        elements.append(Paragraph("Ants Technologies Inc.", normal_style))
+
     # -----------------------
     # Build PDF
     # -----------------------
@@ -724,6 +768,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
