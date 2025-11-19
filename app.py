@@ -384,29 +384,50 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         elements.append(Spacer(1, 12))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
         elements.append(Spacer(1, 20))
+    
+    # -----------------------
+    # Quotation Table (fixed to respect margins)
+    # -----------------------
 
-    # -----------------------
-    # Quotation Table
-    # -----------------------
-    data = [df.columns.tolist()] + df.values.tolist()
+    # Build table_data from dataframe (header + rows)
+    table_data = []
+    header = df.columns.tolist()
+    table_data.append(header)
+
+    # Format rows: ensure numbers look consistent and keep types safe for ReportLab
+    for i, row in df.reset_index(drop=True).iterrows():
+        table_data.append([
+            int(row.get("Item", i + 1)) if pd.notna(row.get("Item", None)) else (i + 1),
+            str(row.get("Part Number", "") or ""),
+            str(row.get("Description", "") or ""),
+            f"{row.get('Quantity', 0):.2f}" if pd.notna(row.get("Quantity", None)) else "0.00",
+            str(row.get("Unit", "") or ""),
+            f"{row.get('Unit Price', 0):.2f}" if pd.notna(row.get("Unit Price", None)) else "0.00",
+            f"{row.get('Subtotal', 0):.2f}" if pd.notna(row.get("Subtotal", None)) else "0.00",
+        ])
+
+    # Compute available width using the document margins so table fits EXACTLY between margins
     PAGE_WIDTH, PAGE_HEIGHT = A4
-    available_width = PAGE_WIDTH - (0.75 * inch * 2)             
-    col_widths = [
-        0.6 * inch,   # Item No
-        1.2 * inch,   # Part Number
-        3.0 * inch,   # Description
-        0.7 * inch,   # Qty
-        0.7 * inch,   # Unit
-        1.0 * inch,   # Unit Price
-        1.2 * inch,   # Subtotal
-    ]
-    table = Table(data, colWidths=col_widths, repeatRows=1)
-    table = Table(table_data, colWidths=col_widths)
+    available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
+
+    # Choose column proportions (sum must be 1.0)
+    # tweak these proportions if you want different column sizing
+    proportions = [0.06, 0.10, 0.34, 0.09, 0.07, 0.17, 0.17]
+    # normalize (just in case)
+    total_prop = sum(proportions)
+    proportions = [p / total_prop for p in proportions]
+
+    # Calculate actual column widths that exactly fit available width
+    col_widths = [available_width * p for p in proportions]
+
+    # Build table
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
     table.setStyle(TableStyle([
-    # Grid lines
+        # light grid
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
 
-    # Header styling
+        # header styling
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 10),
@@ -414,61 +435,56 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
         ("TOPPADDING", (0, 0), (-1, 0), 4),
 
-    # Body font & padding
+        # body font / size
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 1), (-1, -1), 10),
         ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
 
-    # Column alignments
-        ("ALIGN", (0, 1), (1, -1), "CENTER"),   # Item No, Part Number
+        # column alignment specifics
+        ("ALIGN", (0, 1), (1, -1), "CENTER"),   # Item, Part Number
         ("ALIGN", (2, 1), (2, -1), "LEFT"),     # Description
-        ("ALIGN", (3, 1), (5, -1), "RIGHT"),    # Qty, Unit, Unit Price
-        ("ALIGN", (6, 1), (6, -1), "RIGHT"),    # Subtotal
+        ("ALIGN", (3, 1), (3, -1), "RIGHT"),    # Quantity
+        ("ALIGN", (4, 1), (4, -1), "CENTER"),   # Unit (center looks better)
+        ("ALIGN", (5, 1), (6, -1), "RIGHT"),    # Unit Price, Subtotal
 
-    # Tighter rows like screenshot
+        # compact row paddings
         ("TOPPADDING", (0, 1), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
-    ]))    
+    ]))
 
     elements.append(table)
     elements.append(Spacer(1, 8))
 
     # -----------------------
-    # Totals Table
+    # Totals Table (aligned to same usable width)
     # -----------------------
-
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
         ["TOTAL", f"₱ {totals['total']:.2f}"],
     ]
-    totals_table = Table(
-        total_data,
-        colWidths=[sum(col_widths[:-1]), col_widths[-1]]  # aligns exactly with table
-    )
+
+    # Make totals table align with the items table: first cell spans all columns except last
+    first_col_width = sum(col_widths[:-1])
+    last_col_width = col_widths[-1]
+    totals_table = Table(total_data, colWidths=[first_col_width, last_col_width])
 
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
-
-    # Basic font
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 0), (-1, -1), 10),
-
-    # Align values right
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-
-    # Row paddings
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-
-    # TOTAL row — green bar
-        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),  # soft green
+        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
 
     elements.append(totals_table)
     elements.append(Spacer(1, 12))
+
+    
 
     # -----------------------
     # Terms & Conditions
@@ -827,6 +843,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
