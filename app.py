@@ -12,6 +12,7 @@ from datetime import datetime
 from google.oauth2 import service_account
 from gspread.exceptions import APIError
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import (
@@ -809,6 +810,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
