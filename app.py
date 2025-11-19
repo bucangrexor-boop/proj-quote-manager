@@ -313,35 +313,28 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(date_line)
     elements.append(Spacer(1, 30))
 
-    # -----------------------
-    # Client Information (format exactly as requested)
-    # -----------------------
-    from reportlab.lib.styles import ParagraphStyle
-
-# -----------------------
-# Client Information (format exactly as requested)
-# -----------------------
-if client_info:
+#client infor---------
+    if client_info:
     # Create a NEW STYLE that does NOT affect Normal
-    left_style = ParagraphStyle(
-        "left_style",
-        parent=styles["Normal"],
-        alignment=0   # LEFT ALIGN
-    )
+        left_style = ParagraphStyle(
+            "left_style",
+            parent=styles["Normal"],
+            alignment=0   # LEFT ALIGN
+        )
     # Title
-    elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", left_style))
-    elements.append(Spacer(1, 6))
+        elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", left_style))
+        elements.append(Spacer(1, 6))
     # Office
-    elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", left_style))
+        elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", left_style))
     # Company
-    elements.append(Paragraph(client_info.get("Company", ""), left_style))
-    elements.append(Spacer(1, 20))
+        elements.append(Paragraph(client_info.get("Company", ""), left_style))
+        elements.append(Spacer(1, 20))
     # Greeting
-    elements.append(Paragraph("Dear Sir:", left_style))
-    elements.append(Spacer(1, 12))
+        elements.append(Paragraph("Dear Sir:", left_style))
+        elements.append(Spacer(1, 12))
     # Main Message
-    elements.append(Paragraph(client_info.get("Message", ""), left_style))
-    elements.append(Spacer(1, 20))
+        elements.append(Paragraph(client_info.get("Message", ""), left_style))
+        elements.append(Spacer(1, 20))
 
     # -----------------------
     # Quotation Table
@@ -812,6 +805,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
