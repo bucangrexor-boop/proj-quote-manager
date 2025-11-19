@@ -424,7 +424,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     # Choose column proportions (sum must be 1.0)
     # tweak these proportions if you want different column sizing
-    proportions = [0.06, 0.10, 0.34, 0.09, 0.07, 0.17, 0.17]
+    proportions = [0.05, 0.20, 0.35, 0.10, 0.05, 0.13, 0.13]
     # normalize (just in case)
     total_prop = sum(proportions)
     proportions = [p / total_prop for p in proportions]
@@ -855,6 +855,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
