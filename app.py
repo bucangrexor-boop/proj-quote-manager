@@ -316,30 +316,38 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Client Information (format exactly as requested)
     # -----------------------
-    if client_info:
-        left_style = ParagraphStyle(
-            "left_style",
-            parent=styles["Normal"],
-            alignment=0   # LEFT ALIGN
-        )
-        # Title
-        elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", left_style["Normal"]))
-        elements.append(Spacer(1, 6))
+    from reportlab.lib.styles import ParagraphStyle
 
-        # Office
-        elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", left_style["Normal"]))
+# -----------------------
+# Client Information (format exactly as requested)
+# -----------------------
+if client_info:
 
-        # Company
-        elements.append(Paragraph(client_info.get("Company", ""), left_style["Normal"]))
-        elements.append(Spacer(1, 20))
+    # Create a NEW STYLE that does NOT affect Normal
+    left_style = ParagraphStyle(
+        "left_style",
+        parent=styles["Normal"],
+        alignment=0   # LEFT ALIGN
+    )
 
-        # Greeting
-        elements.append(Paragraph("Dear Sir:", left_style["Normal"]))
-        elements.append(Spacer(1, 12))
+    # Title
+    elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", left_style))
+    elements.append(Spacer(1, 6))
 
-        # Main Message
-        elements.append(Paragraph(client_info.get("Message", ""), left_style["Normal"]))
-        elements.append(Spacer(1, 20))
+    # Office
+    elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", left_style))
+
+    # Company
+    elements.append(Paragraph(client_info.get("Company", ""), left_style))
+    elements.append(Spacer(1, 20))
+
+    # Greeting
+    elements.append(Paragraph("Dear Sir:", left_style))
+    elements.append(Spacer(1, 12))
+
+    # Main Message
+    elements.append(Paragraph(client_info.get("Message", ""), left_style))
+    elements.append(Spacer(1, 20))
 
     # -----------------------
     # Quotation Table
@@ -810,6 +818,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
