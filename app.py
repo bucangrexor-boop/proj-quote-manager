@@ -437,6 +437,13 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Totals Table
     # -----------------------
+
+    total_data = [
+        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
+        ["Discount", f"₱ {totals['discount']:.2f}"],
+        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
+        ["TOTAL", f"₱ {totals['total']:.2f}"],
+    ]
     totals_table = Table(
         total_data,
         colWidths=[sum(col_widths[:-1]), col_widths[-1]]  # aligns exactly with table
@@ -821,6 +828,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
