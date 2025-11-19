@@ -322,17 +322,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Load logos safely
     # -----------------------
-    def load_logo(path, width=1.8*inch):
-        if not path:
+    def load_logo(filename, width=1.8*inch):
+        path = os.path.join("assets", filename)
+        if not os.path.exists(path):
             return ""
         try:
             return Image(path, width=width, preserveAspectRatio=True, hAlign='LEFT')
         except:
             return ""
 
-    left_logo = load_logo(r"C:\Users\Rexor Bucang\OneDrive - University of the Cordilleras\Desktop\logoants.png")
-    right_logo = load_logo(r"C:\Users\Rexor Bucang\OneDrive - University of the Cordilleras\Desktop\antslogo2.png")
-
+    left_logo = load_logo("logoants.png")
+    right_logo = load_logo("antslogo2.png")
     # -----------------------
     # Header (logos)
     # -----------------------
@@ -854,6 +854,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
