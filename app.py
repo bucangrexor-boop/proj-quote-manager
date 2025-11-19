@@ -386,91 +386,10 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), left_style))
-
+        elements.append(Paragraph("Ants Technologies Inc.", left_style))
     # -----------------------
     # Build PDF
     # -----------------------
-    doc.build(elements)
-    buffer.seek(0)
-    return buffer
-
-
-    # -----------------------
-    # Build PDF
-    # -----------------------
-    doc.build(elements)
-    buffer.seek(0)
-    return buffer
-
-
-    # ------------------------------------------
-    # CENTER TITLE BLOCK
-    # ------------------------------------------
-    title = Paragraph("<b>PRICE QUOTE</b>", ParagraphStyle(
-        'TitleCenter', fontSize=11, alignment=1, leading=22
-    ))
-
-    ref_no = Paragraph(
-        f"<b>Ref No:</b> {project_name}",
-        ParagraphStyle('Ref', fontSize=11, alignment=1)
-    )
-
-    elements.extend([title, Spacer(1, 4), ref_no, Spacer(1, 20)])
-
-    # ------------------------------------------
-    # MAIN TABLE
-    # ------------------------------------------
-    data = [list(df.columns)] + df.values.tolist()
-    table = Table(data, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-    ]))
-    elements.append(table)
-    elements.append(Spacer(1, 15))
-
-    # ------------------------------------------
-    # TOTALS TABLE
-    # ------------------------------------------
-    total_data = [
-        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
-        ["Discount", f"₱ {totals['discount']:.2f}"],
-        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
-        ["TOTAL", f"₱ {totals['total']:.2f}"],
-    ]
-    totals_table = Table(total_data, colWidths=[4*inch, 2.3*inch])
-    totals_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen),
-        ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
-    ]))
-
-    elements.append(totals_table)
-    elements.append(Spacer(1, 20))
-
-    # ------------------------------------------
-    # TERMS & CONDITIONS
-    # ------------------------------------------
-    elements.append(Paragraph(" ", styles["Heading4"]))
-    for k, v in terms.items():
-        elements.append(Paragraph(f"<b>{k}:</b> {v}", styles["Normal"]))
-        elements.append(Spacer(1, 4))
-
-    # ------------------------------------------
-    # SIGN-OFF
-    # ------------------------------------------
-    elements.extend([
-        Spacer(1, 20),
-        Paragraph("Prepared by:", styles["Normal"]),
-        Spacer(1, 30),
-        Paragraph("<b>_________________________</b>", styles["Normal"]),
-        Paragraph("aNTS Technologies, Inc.", styles["Normal"]),
-        Spacer(1, 15),
-        Paragraph("<i>Thank you for doing business with us!</i>", styles["Italic"])
-    ])
-
     doc.build(elements)
     buffer.seek(0)
     return buffer
@@ -805,6 +724,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
