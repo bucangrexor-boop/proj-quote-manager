@@ -379,7 +379,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Sign-off
     # -----------------------
-    elements.append(Paragraph("Thank you for doing business with us!", left_style]))
+    elements.append(Paragraph("Thank you for doing business with us!", left_style))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Respectfully yours,", left_style))
     elements.append(Spacer(1, 36))
@@ -805,6 +805,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
