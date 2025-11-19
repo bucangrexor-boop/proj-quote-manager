@@ -384,18 +384,12 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         elements.append(Spacer(1, 12))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
         elements.append(Spacer(1, 20))
-    
-    # -----------------------
-    # Quotation Table (fixed to respect margins)
-    # -----------------------
-    # -----------------------------
-    # Build table_data from dataframe
-    # -----------------------------
+  #---------------  
     table_data = []
     header = df.columns.tolist()
     table_data.append(header)
-
-    # For Paragraph wrapping
+    
+# For Paragraph wrapping
     from reportlab.platypus import Paragraph
     from reportlab.lib.styles import getSampleStyleSheet
     styles = getSampleStyleSheet()
@@ -405,7 +399,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     wrap_style.leading = 12
 
     for i, row in df.reset_index(drop=True).iterrows():
-
     # --- SAFE ITEM NUMBER HANDLING ---
         raw_item = row.get("Item", None)
         if pd.isna(raw_item) or raw_item is None or str(raw_item).strip() == "":
@@ -418,23 +411,26 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # --------------------------------
 
     # WRAP LONG DESCRIPTION
-    description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
+        description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
+
     # QUANTITY → FORCE INTEGER (NO DECIMALS)
-    qty_raw = row.get("Quantity", 0)
-    try:
-         qty = int(float(qty_raw))
-     except:
-         qty = 0
+        qty_raw = row.get("Quantity", 0)
+        try:
+            qty = int(float(qty_raw))
+        except:
+            qty = 0
+
     # Append row to table
-    table_data.append([
-        item_no,
-        str(row.get("Part Number", "") or ""),
-        description,
-        qty,  # integer-only quantity
-        str(row.get("Unit", "") or ""),
-        f"{row.get('Unit Price', 0):.2f}",
-        f"{row.get('Subtotal', 0):.2f}",
+        table_data.append([
+            item_no,
+            str(row.get("Part Number", "") or ""),
+            description,
+            qty,  # integer-only quantity
+            str(row.get("Unit", "") or ""),
+            f"{row.get('Unit Price', 0):.2f}",
+            f"{row.get('Subtotal', 0):.2f}",
         ])
+
 # ----------------------------------------------------
 # COLUMN WIDTHS BASED ON ACTUAL AVAILABLE PAGE SPACE
 # ----------------------------------------------------
@@ -467,7 +463,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (3, 1), (3, -1), "RIGHT"),
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
-    
+
         ("TOPPADDING", (0, 1), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
     ]))
@@ -861,4 +857,5 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
