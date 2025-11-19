@@ -376,7 +376,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
-        elements.append(Spacer(1, 36))
+        elements.append(Spacer(1, 30))
         elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", office_style))
         elements.append(Paragraph(client_info.get("Company", ""), normal_style))
         elements.append(Spacer(1, 20))
@@ -776,6 +776,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
