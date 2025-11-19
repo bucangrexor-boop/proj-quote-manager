@@ -22,6 +22,8 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import Image
 
 # Streamlit Configuration
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
@@ -322,13 +324,11 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Load logos safely
     # -----------------------
-    def load_logo(filename, width=1.8*inch):
-        path = os.path.join("assets", filename)
-        if not os.path.exists(path):
-            return ""
+    def load_logo(url_or_path, width=1.8*inch):
         try:
-            return Image(path, width=width, preserveAspectRatio=True, hAlign='LEFT')
-        except:
+            return Image(ImageReader(url_or_path), width=width, preserveAspectRatio=True, hAlign='LEFT')
+        except Exception as e:
+            print("Failed to load logo:", e)
             return ""
 
     left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png")
@@ -855,6 +855,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
