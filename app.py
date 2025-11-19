@@ -26,6 +26,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Image as RLImage
+from reportlab.platypus import Spacer
 
 # Streamlit Configuration
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
@@ -326,25 +327,28 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Load logos safely
     # -----------------------
-    def load_logo(url_or_path, width=1.8*inch):
+    def load_logo(url_or_path, width=None, height=None):
         try:
             if url_or_path.startswith("http"):
                 response = requests.get(url_or_path)
                 response.raise_for_status()
                 image_data = BytesIO(response.content)
-                img = RLImage(image_data, width=width, height=None)  # height=None keeps aspect ratio
+                img = RLImage(image_data, width=width, height=height)  # height=None keeps aspect ratio
             else:
-                img = RLImage(url_or_path, width=width, height=None)
+                img = RLImage(url_or_path, width=width, height=height)
             img.hAlign = 'LEFT'
             return img
         except Exception as e:
             print("Failed to load logo:", e)
         # Use a transparent spacer instead of empty string
-            from reportlab.platypus import Spacer
-            return Spacer(width, width * 0.5)
+            return Spacer(width or 50 , height or 20)
 
-    left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png")
-    right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png")
+    left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
+                        width = 182 * 0.75
+                        height = 75 * 0.75)
+    right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
+                        width=303 * 0.75,
+                        height=26 * 0.75)    
     # -----------------------
     # Header (logos)
     # -----------------------
@@ -866,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
