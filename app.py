@@ -396,8 +396,21 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     # Format rows: ensure numbers look consistent and keep types safe for ReportLab
     for i, row in df.reset_index(drop=True).iterrows():
+
+    # --- SAFE ITEM NUMBER HANDLING ---
+        raw_item = row.get("Item", None)
+
+        if pd.isna(raw_item) or raw_item is None or str(raw_item).strip() == "":
+            item_no = i + 1
+        else:
+            try:
+                item_no = int(float(str(raw_item).strip()))
+            except:
+                item_no = i + 1
+    # ---------------------------------
+
         table_data.append([
-            int(row.get("Item", i + 1)) if pd.notna(row.get("Item", None)) else (i + 1),
+            item_no,
             str(row.get("Part Number", "") or ""),
             str(row.get("Description", "") or ""),
             f"{row.get('Quantity', 0):.2f}" if pd.notna(row.get("Quantity", None)) else "0.00",
@@ -405,8 +418,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
             f"{row.get('Unit Price', 0):.2f}" if pd.notna(row.get("Unit Price", None)) else "0.00",
             f"{row.get('Subtotal', 0):.2f}" if pd.notna(row.get("Subtotal", None)) else "0.00",
         ])
-
-    # Compute available width using the document margins so table fits EXACTLY between margins
+        # Compute available width using the document margins so table fits EXACTLY between margins
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
 
@@ -843,6 +855,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
