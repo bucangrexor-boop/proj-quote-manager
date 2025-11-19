@@ -388,18 +388,26 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Quotation Table (fixed to respect margins)
     # -----------------------
-
-    # Build table_data from dataframe (header + rows)
+    # -----------------------------
+    # Build table_data from dataframe
+    # -----------------------------
     table_data = []
     header = df.columns.tolist()
     table_data.append(header)
 
-    # Format rows: ensure numbers look consistent and keep types safe for ReportLab
+    # For Paragraph wrapping
+    from reportlab.platypus import Paragraph
+    from reportlab.lib.styles import getSampleStyleSheet
+    styles = getSampleStyleSheet()
+    wrap_style = styles["BodyText"]
+    wrap_style.fontName = "Arial"
+    wrap_style.fontSize = 10
+    wrap_style.leading = 12
+
     for i, row in df.reset_index(drop=True).iterrows():
 
     # --- SAFE ITEM NUMBER HANDLING ---
         raw_item = row.get("Item", None)
-
         if pd.isna(raw_item) or raw_item is None or str(raw_item).strip() == "":
             item_no = i + 1
         else:
@@ -407,59 +415,62 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                 item_no = int(float(str(raw_item).strip()))
             except:
                 item_no = i + 1
-    # ---------------------------------
+    # --------------------------------
 
+    # WRAP LONG DESCRIPTION
+        description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
+
+    # QUANTITY → FORCE INTEGER (NO DECIMALS)
+        qty_raw = row.get("Quantity", 0)
+        try:
+            qty = int(float(qty_raw))
+        except:
+            qty = 0
+
+    # Append row to table
         table_data.append([
             item_no,
             str(row.get("Part Number", "") or ""),
-            str(row.get("Description", "") or ""),
-            f"{row.get('Quantity', 0):.2f}" if pd.notna(row.get("Quantity", None)) else "0.00",
+            description,
+            qty,  # integer-only quantity
             str(row.get("Unit", "") or ""),
-            f"{row.get('Unit Price', 0):.2f}" if pd.notna(row.get("Unit Price", None)) else "0.00",
-            f"{row.get('Subtotal', 0):.2f}" if pd.notna(row.get("Subtotal", None)) else "0.00",
+            f"{row.get('Unit Price', 0):.2f}",
+            f"{row.get('Subtotal', 0):.2f}",
         ])
-        # Compute available width using the document margins so table fits EXACTLY between margins
+
+# ----------------------------------------------------
+# COLUMN WIDTHS BASED ON ACTUAL AVAILABLE PAGE SPACE
+# ----------------------------------------------------
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
 
-    # Choose column proportions (sum must be 1.0)
-    # tweak these proportions if you want different column sizing
     proportions = [0.05, 0.20, 0.35, 0.10, 0.05, 0.13, 0.13]
-    # normalize (just in case)
     total_prop = sum(proportions)
     proportions = [p / total_prop for p in proportions]
 
-    # Calculate actual column widths that exactly fit available width
     col_widths = [available_width * p for p in proportions]
 
-    # Build table
+# Create table with wrapping
     table = Table(table_data, colWidths=col_widths, repeatRows=1)
 
     table.setStyle(TableStyle([
-        # light grid
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
 
-        # header styling
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 10),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
-        ("TOPPADDING", (0, 0), (-1, 0), 4),
 
-        # body font / size
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 1), (-1, -1), 10),
         ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
 
-        # column alignment specifics
-        ("ALIGN", (0, 1), (1, -1), "CENTER"),   # Item, Part Number
-        ("ALIGN", (2, 1), (2, -1), "LEFT"),     # Description
-        ("ALIGN", (3, 1), (3, -1), "RIGHT"),    # Quantity
-        ("ALIGN", (4, 1), (4, -1), "CENTER"),   # Unit (center looks better)
-        ("ALIGN", (5, 1), (6, -1), "RIGHT"),    # Unit Price, Subtotal
-
-        # compact row paddings
+        ("ALIGN", (0, 1), (1, -1), "CENTER"),
+        ("ALIGN", (2, 1), (2, -1), "LEFT"),
+        ("ALIGN", (3, 1), (3, -1), "RIGHT"),
+        ("ALIGN", (4, 1), (4, -1), "CENTER"),
+        ("ALIGN", (5, 1), (6, -1), "RIGHT"),
+    
         ("TOPPADDING", (0, 1), (-1, -1), 2),
         ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
     ]))
@@ -467,19 +478,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(table)
     elements.append(Spacer(1, 8))
 
-    # -----------------------
-    # Totals Table (aligned to same usable width)
-    # -----------------------
+# ----------------------------------------------------
+# TOTALS TABLE (aligned with last column)
+# ----------------------------------------------------
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
         ["TOTAL", f"₱ {totals['total']:.2f}"],
-    ]
+    ]        
 
-    # Make totals table align with the items table: first cell spans all columns except last
     first_col_width = sum(col_widths[:-1])
     last_col_width = col_widths[-1]
+
     totals_table = Table(total_data, colWidths=[first_col_width, last_col_width])
 
     totals_table.setStyle(TableStyle([
@@ -494,9 +505,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     ]))
 
     elements.append(totals_table)
-    elements.append(Spacer(1, 12))
-
-    
+elements.append(Spacer(1, 12))
 
     # -----------------------
     # Terms & Conditions
@@ -855,6 +864,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
