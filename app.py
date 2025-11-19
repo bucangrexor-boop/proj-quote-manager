@@ -254,11 +254,18 @@ def save_totals_to_ws(ws, total, vat, grand_total):
 # PDF Generator
 # ===============================================================
 # Register Fonts
-pdfmetrics.registerFont(TTFont('Arial', r'C:\Windows\Fonts\arial.ttf'))
-pdfmetrics.registerFont(TTFont('Arial-Bold', r'C:\Windows\Fonts\arialbd.ttf'))
-pdfmetrics.registerFont(TTFont('Arial-Narrow', r'C:\Windows\Fonts\ARIALN.TTF'))
-pdfmetrics.registerFont(TTFont('Calibri', r'C:\Windows\Fonts\calibri.ttf'))
-pdfmetrics.registerFont(TTFont('Calibri-Bold', r'C:\Windows\Fonts\calibrib.ttf'))
+# Build font path relative to app.py
+BASE_DIR = os.path.dirname(__file__)
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
+
+def font(file):
+    return os.path.join(FONT_DIR, file)
+pdfmetrics.registerFont(TTFont('Arial', font('arial.ttf')))
+pdfmetrics.registerFont(TTFont('Arial-Bold', font('arialbd.ttf')))
+pdfmetrics.registerFont(TTFont('Arial-Narrow', font('arialn.ttf')))
+pdfmetrics.registerFont(TTFont('Calibri', font('calibri.ttf')))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', font('calibrib.ttf')))
+
 
 def generate_pdf(project_name, df, totals, terms, client_info=None,
                  left_logo_path=None, right_logo_path=None):
@@ -768,6 +775,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
