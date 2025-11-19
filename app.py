@@ -316,7 +316,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Client Information (format exactly as requested)
     # -----------------------
     if client_info:
-
+        left_style = styles["Normal"]
+        left_style.alignment = 0   # FORCE LEFT ALIGNMENT
         # Title
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", styles["Normal"]))
         elements.append(Spacer(1, 6))
@@ -805,6 +806,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
