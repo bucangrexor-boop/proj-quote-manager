@@ -331,8 +331,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         except:
             return ""
 
-    left_logo = load_logo("logoants.png")
-    right_logo = load_logo("antslogo2.png")
+    left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png")
+    right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png")
+
     # -----------------------
     # Header (logos)
     # -----------------------
@@ -854,6 +855,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
