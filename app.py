@@ -5,10 +5,12 @@ import io
 import os
 import json
 import time
+import requests
 import numpy as np
 import pandas as pd
 import streamlit as st
 import gspread
+from io import BytesIO
 from datetime import datetime
 from google.oauth2 import service_account
 from gspread.exceptions import APIError
@@ -326,14 +328,20 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     def load_logo(url_or_path, width=1.8*inch):
         try:
-            return Image(ImageReader(url_or_path), width=width, preserveAspectRatio=True, hAlign='LEFT')
+            if url_or_path.startswith("http"):
+                response = requests.get(url_or_path)
+                response.raise_for_status()
+                image_data = BytesIO(response.content)
+                return Image(ImageReader(image_data), width=width, preserveAspectRatio=True, hAlign='LEFT')
+            else:
+                # Local file
+                return Image(ImageReader(url_or_path), width=width, preserveAspectRatio=True, hAlign='LEFT')
         except Exception as e:
             print("Failed to load logo:", e)
             return ""
 
     left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png")
     right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png")
-
     # -----------------------
     # Header (logos)
     # -----------------------
@@ -855,6 +863,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
