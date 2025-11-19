@@ -437,22 +437,32 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Totals Table
     # -----------------------
-    total_data = [
-        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
-        ["Discount", f"₱ {totals['discount']:.2f}"],
-        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
-        ["TOTAL", f"₱ {totals['total']:.2f}"],
-    ]
-    totals_table = Table(total_data, colWidths=[4*inch, 2.3*inch])
+    totals_table = Table(
+        total_data,
+        colWidths=[sum(col_widths[:-1]), col_widths[-1]]  # aligns exactly with table
+    )
+
     totals_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-        ("FONTNAME", (0, 0), (-1, -2), "Arial"),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+
+    # Basic font
+        ("FONTNAME", (0, 0), (-1, -1), "Arial"),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+
+    # Align values right
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+
+    # Row paddings
+        ("TOPPADDING", (0, 0), (-1, -1), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+
+    # TOTAL row — green bar
+        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),  # soft green
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.lightgreen),
     ]))
+
     elements.append(totals_table)
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 12))
 
     # -----------------------
     # Terms & Conditions
@@ -811,6 +821,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
