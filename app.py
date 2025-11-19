@@ -389,15 +389,50 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Quotation Table
     # -----------------------
     data = [df.columns.tolist()] + df.values.tolist()
-    table = Table(data, repeatRows=1)
+
+# Column width tuning (adjust if needed)
+    col_widths = [
+        0.6 * inch,   # Item No
+        1.2 * inch,   # Part Number
+        3.0 * inch,   # Description
+        0.7 * inch,   # Qty
+        0.7 * inch,   # Unit
+        1.0 * inch,   # Unit Price
+        1.2 * inch,   # Subtotal
+    ]
+
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+
     table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+    # Grid lines
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+
+    # Header styling
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-    ]))
+        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
+        ("TOPPADDING", (0, 0), (-1, 0), 4),
+
+    # Body font & padding
+        ("FONTNAME", (0, 1), (-1, -1), "Arial"),
+        ("FONTSIZE", (0, 1), (-1, -1), 10),
+        ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
+
+    # Column alignments
+        ("ALIGN", (0, 1), (1, -1), "CENTER"),   # Item No, Part Number
+        ("ALIGN", (2, 1), (2, -1), "LEFT"),     # Description
+        ("ALIGN", (3, 1), (5, -1), "RIGHT"),    # Qty, Unit, Unit Price
+        ("ALIGN", (6, 1), (6, -1), "RIGHT"),    # Subtotal
+
+    # Tighter rows like screenshot
+        ("TOPPADDING", (0, 1), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
+    ]))    
+
     elements.append(table)
-    elements.append(Spacer(1, 15))
+    elements.append(Spacer(1, 8))
 
     # -----------------------
     # Totals Table
@@ -776,6 +811,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
