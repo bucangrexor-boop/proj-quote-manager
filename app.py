@@ -261,11 +261,11 @@ FONT_DIR = os.path.join(BASE_DIR, "fonts")
 
 def font(file):
     return os.path.join(FONT_DIR, file)
-pdfmetrics.registerFont(TTFont('Arial', font('ARIAL.ttf')))
-pdfmetrics.registerFont(TTFont('Arial-Bold', font('ARIALBD.ttf')))
-pdfmetrics.registerFont(TTFont('Arial-Narrow', font('ARIALN.ttf')))
-pdfmetrics.registerFont(TTFont('Calibri', font('CALIBRI.ttf')))
-pdfmetrics.registerFont(TTFont('Calibri-Bold', font('CALIBRIB.ttf')))
+pdfmetrics.registerFont(TTFont('Arial', font('ARIAL.TTF')))
+pdfmetrics.registerFont(TTFont('Arial-Bold', font('ARIALBD.TTF')))
+pdfmetrics.registerFont(TTFont('Arial-Narrow', font('ARIALN.TTF')))
+pdfmetrics.registerFont(TTFont('Calibri', font('CALIBRI.TTF')))
+pdfmetrics.registerFont(TTFont('Calibri-Bold', font('CALIBRIB.TTF')))
 
 
 def generate_pdf(project_name, df, totals, terms, client_info=None,
@@ -776,6 +776,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
