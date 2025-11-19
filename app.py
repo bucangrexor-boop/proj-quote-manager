@@ -389,9 +389,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     header = df.columns.tolist()
     table_data.append(header)
     
-# For Paragraph wrapping
-    from reportlab.platypus import Paragraph
-    from reportlab.lib.styles import getSampleStyleSheet
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
     wrap_style.fontName = "Arial"
@@ -857,5 +854,6 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
