@@ -477,8 +477,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
 
-        ("TOPPADDING", (0, 1), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
+        ("TOPPADDING", (0, 1), (-1, -1), 1),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 1),
     ]))
 
     elements.append(table)
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
