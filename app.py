@@ -309,7 +309,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         "OfficeStyle",
         fontName="Arial-Bold",
         fontSize=7,
-        alignment=0
+        alignment=0,
+        leading=10,
+        spaceAfter = 0
     )
     normal_style = ParagraphStyle(
         "NormalStyle",
@@ -870,6 +872,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
