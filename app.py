@@ -535,10 +535,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
-    left_offset = sum(col_widths[: unit_price_index])
-# Add to PDF elements
-    elements.append(Spacer(left_offset, 0))
-    elements.append(totals_table)
+    left_width = sum(col_widths[: unit_price_index])
+    totals_widths = [totals_first_col_width, totals_second_col_width]  # widths of totals table
+    dummy_width = left_width
+
+    wrapper_table = Table(
+        [[totals_table]],
+        colWidths=[dummy_width + sum(totals_widths)]
+    )
+
+    wrapper_table.hAlign = 'LEFT'
+    elements.append(wrapper_table)
     elements.append(Spacer(1, 20))
 
     # -----------------------
@@ -897,6 +904,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
