@@ -290,37 +290,37 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     price_quote_style = ParagraphStyle(
         "PriceQuote",
         fontName="Calibri-Bold",
-        fontSize=10,
+        fontSize=8,
         alignment=1  # CENTER
     )
     ref_style = ParagraphStyle(
         "RefStyle",
         fontName="Arial-Narrow",
-        fontSize=9,
+        fontSize=7,
         alignment=1  # CENTER
     )
     title_style = ParagraphStyle(
         "TitleStyle",
         fontName="Arial-Bold",
-        fontSize=10,
+        fontSize=8,
         alignment=0  # LEFT
     )
     office_style = ParagraphStyle(
         "OfficeStyle",
         fontName="Arial-Bold",
-        fontSize=9,
+        fontSize=7,
         alignment=0
     )
     normal_style = ParagraphStyle(
         "NormalStyle",
         fontName="Arial",
-        fontSize=9,
+        fontSize=7,
         alignment=0
     )
     table_header_style = ParagraphStyle(
         "TableHeader",
         fontName="Arial-Bold",
-        fontSize=9,
+        fontSize=7,
         alignment=1  # CENTER
     )
 
@@ -359,7 +359,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 10)
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0)
     ]))
     elements.append(header_table)
     elements.append(Spacer(1, 20))
@@ -368,13 +368,13 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Price Quote Title
     # -----------------------
     elements.append(Paragraph("P R I C E   Q U O T E", price_quote_style))
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 0))
 
     # -----------------------
     # Ref No.
     # -----------------------
     elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 2))
 
     # -----------------------
     # Date
@@ -385,21 +385,21 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ref_style
     )
     elements.append(date_line)
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 12))
 
     # -----------------------
     # Client Info
     # -----------------------
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 10))
         elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", office_style))
         elements.append(Paragraph(client_info.get("Company", ""), normal_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 10))
         elements.append(Paragraph("Dear Sir:", normal_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 10))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
-        elements.append(Spacer(1, 12))
+        elements.append(Spacer(1, 10))
   #---------------  
     table_data = []
     header = df.columns.tolist()
@@ -408,7 +408,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
     wrap_style.fontName = "Arial"
-    wrap_style.fontSize = 8
+    wrap_style.fontSize = 7
     wrap_style.leading = 12
 
     for i, row in df.reset_index(drop=True).iterrows():
@@ -504,8 +504,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("TOPPADDING", (0, 0), (-1, -1), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
