@@ -499,12 +499,10 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Totals Table (aligned over last 2 columns)
     # -----------------------
-
-    # Find indexes of the columns
     unit_price_index = header.index("Unit Price")
     subtotal_index = header.index("Subtotal")
 
-    # Get the widths of the last two columns
+# Get the widths of the last two columns
     totals_first_col_width = col_widths[unit_price_index]   # first column: labels
     totals_second_col_width = col_widths[subtotal_index]    # second column: amounts
 
@@ -520,10 +518,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     totals_table = Table(
         total_data,
         colWidths=[totals_first_col_width, totals_second_col_width],
-        rowHeights= None
+        rowHeights=None
     )
 
-# Apply styling
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
@@ -535,18 +532,21 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
-    left_width = sum(col_widths[: unit_price_index])
-    totals_widths = [totals_first_col_width, totals_second_col_width]  # widths of totals table
-    dummy_width = left_width
 
+# -------------------------
+# Wrap totals_table in a 2-column wrapper
+# -------------------------
+    left_width = sum(col_widths[:unit_price_index])  # space before Unit Price
     wrapper_table = Table(
-        [[totals_table]],
-        colWidths=[dummy_width + sum(totals_widths)]
+        [[None, totals_table]],        # empty left cell, totals table on the right
+        colWidths=[left_width, sum([totals_first_col_width, totals_second_col_width])]
     )
 
-    wrapper_table.hAlign = 'LEFT'
+    wrapper_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))  # optional
+
     elements.append(wrapper_table)
     elements.append(Spacer(1, 20))
+
 
     # -----------------------
     # Terms & Conditions
@@ -904,6 +904,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
