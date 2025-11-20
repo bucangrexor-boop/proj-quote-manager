@@ -36,7 +36,7 @@ GSHEETS_KEY_SECRET = "gsheets_key"
 GCP_SA_SECRET = "gcp_service_account"
 
 SHEET_HEADERS = [
-    "Item", "Part Number", "Description", "Quantity", "Unit", "Unit Price", "Subtotal"
+    "Item", "Part Number", "Description", "Qty", "Unit", "Unit Price", "Subtotal"
 ]
 
 TERMS_LABELS = [
@@ -104,9 +104,9 @@ def df_from_worksheet(ws) -> pd.DataFrame:
                     df[col] = ""
 
             df = df[SHEET_HEADERS]
-            df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce").fillna(0)
+            df["Qty"] = pd.to_numeric(df["Qty"], errors="coerce").fillna(0)
             df["Unit Price"] = pd.to_numeric(df["Unit Price"], errors="coerce").fillna(0)
-            df["Subtotal"] = (df["Quantity"] * df["Unit Price"]).round(2)
+            df["Subtotal"] = (df["Qty"] * df["Unit Price"]).round(2)
             return df
 
         except APIError as e:
@@ -426,8 +426,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # WRAP LONG DESCRIPTION
         description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
 
-    # QUANTITY → FORCE INTEGER (NO DECIMALS)
-        qty_raw = row.get("Quantity", 0)
+    # Qty → FORCE INTEGER (NO DECIMALS)
+        qty_raw = row.get("Qty", 0)
         try:
             qty = int(float(qty_raw))
         except:
@@ -438,7 +438,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
             item_no,
             str(row.get("Part Number", "") or ""),
             description,
-            qty,  # integer-only quantity
+            qty,  # integer-only Qty
             str(row.get("Unit", "") or ""),
             f"{row.get('Unit Price', 0):.2f}",
             f"{row.get('Subtotal', 0):.2f}",
@@ -622,9 +622,9 @@ elif st.session_state.page == "project":
     # df_ref is the live DataFrame the editor uses
     df_clean = st.session_state[session_key].copy()
 
-    df_clean["Quantity"] = pd.to_numeric(df_clean["Quantity"], errors="coerce").fillna(0)
+    df_clean["Qty"] = pd.to_numeric(df_clean["Qty"], errors="coerce").fillna(0)
     df_clean["Unit Price"] = pd.to_numeric(df_clean["Unit Price"], errors="coerce").fillna(0)
-    df_clean["Subtotal"] = (df_clean["Quantity"] * df_clean["Unit Price"]).round(2)
+    df_clean["Subtotal"] = (df_clean["Qty"] * df_clean["Unit Price"]).round(2)
 
     # Save cleaned version before editor → prevents "first key disappears"
     st.session_state[session_key] = df_clean.copy()
@@ -684,9 +684,9 @@ elif st.session_state.page == "project":
     current_df = st.session_state[session_key].copy()
 
 # Make sure numeric fields are correct
-    current_df["Quantity"] = pd.to_numeric(current_df["Quantity"], errors="coerce").fillna(0).astype(float)
+    current_df["Qty"] = pd.to_numeric(current_df["Qty"], errors="coerce").fillna(0).astype(float)
     current_df["Unit Price"] = pd.to_numeric(current_df["Unit Price"], errors="coerce").fillna(0).astype(float)
-    current_df["Subtotal"] = (current_df["Quantity"] * current_df["Unit Price"]).round(2)
+    current_df["Subtotal"] = (current_df["Qty"] * current_df["Unit Price"]).round(2)
 # Save the computed version back to session state (won’t break the editor)
     st.session_state[session_key] = current_df
     # --- Totals --- (compute BEFORE Save button so they exist when saving)
@@ -713,11 +713,11 @@ elif st.session_state.page == "project":
                     old_df = df_from_worksheet(ws).reset_index(drop=True)
 
                     # ✅ Numeric cleanup
-                    for col in ["Quantity", "Unit Price", "Subtotal"]:
+                    for col in ["Qty", "Unit Price", "Subtotal"]:
                         new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0).astype(float)
 
                     # ✅ Recompute subtotal
-                    new_df["Subtotal"] = (new_df["Quantity"] * new_df["Unit Price"]).round(2)
+                    new_df["Subtotal"] = (new_df["Qty"] * new_df["Unit Price"]).round(2)
 
                     # ✅ Ensure pure Python numbers (avoid numpy in gspread)
                     new_df = new_df.applymap(lambda x: x.item() if hasattr(x, "item") else x)
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
