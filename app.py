@@ -501,6 +501,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 # ----------------------------------------------------
     unit_price_index = header.index("Unit Price")
     subtotal_index = header.index("Subtotal")    
+    totals_first_col_width = sum(col_widths[unit_price_index:unit_price_index+1-1] or [])
     totals_first_col_width = col_widths[:unit_price_index]
     totals_second_col_width = col_widths[subtotal_index]
                      
@@ -886,6 +887,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
