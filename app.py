@@ -499,17 +499,24 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 # ----------------------------------------------------
 # TOTALS TABLE (aligned with last column)
 # ----------------------------------------------------
+    
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
         ["TOTAL", f"₱ {totals['total']:.2f}"],
     ]
+    unit_price_index = header.index("Unit Price")
+# Width of all columns up to Unit Price
+    totals_first_col_width = sum(col_widths[:unit_price_index])
+# Width of Unit Price column
+    totals_second_col_width = col_widths[unit_price_index]
 
-    first_col_width = sum(col_widths[:-1])
-    last_col_width = col_widths[-1]
-
-    totals_table = Table(total_data, colWidths=[first_col_width, last_col_width], rowHeights=None)
+    totals_table = Table(
+        total_data,
+        colWidths=[totals_first_col_width, totals_second_col_width],
+        rowHeights=None
+)
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
@@ -524,7 +531,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     elements.append(totals_table)
     elements.append(Spacer(1, 20))
-
 
     # -----------------------
     # Terms & Conditions
@@ -882,6 +888,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
