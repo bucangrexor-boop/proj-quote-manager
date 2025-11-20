@@ -290,37 +290,37 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     price_quote_style = ParagraphStyle(
         "PriceQuote",
         fontName="Calibri-Bold",
-        fontSize=12,
+        fontSize=10,
         alignment=1  # CENTER
     )
     ref_style = ParagraphStyle(
         "RefStyle",
         fontName="Arial-Narrow",
-        fontSize=11,
+        fontSize=9,
         alignment=1  # CENTER
     )
     title_style = ParagraphStyle(
         "TitleStyle",
         fontName="Arial-Bold",
-        fontSize=12,
+        fontSize=10,
         alignment=0  # LEFT
     )
     office_style = ParagraphStyle(
         "OfficeStyle",
         fontName="Arial-Bold",
-        fontSize=11,
+        fontSize=9,
         alignment=0
     )
     normal_style = ParagraphStyle(
         "NormalStyle",
         fontName="Arial",
-        fontSize=11,
+        fontSize=9,
         alignment=0
     )
     table_header_style = ParagraphStyle(
         "TableHeader",
         fontName="Arial-Bold",
-        fontSize=11,
+        fontSize=9,
         alignment=1  # CENTER
     )
 
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
