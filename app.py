@@ -544,8 +544,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
-        elements.append(Paragraph("Ants Technologies Inc.", normal_style))
-
+        elements.append(Paragraph("Ants Technologies, Inc.", ref_style))
     # -----------------------
     # Build PDF
     # -----------------------
@@ -883,6 +882,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
