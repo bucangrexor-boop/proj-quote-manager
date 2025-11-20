@@ -316,6 +316,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         fontName="Arial",
         fontSize=7,
         alignment=0,
+        leading=10
         spaceAfter = 0
     )
     table_header_style = ParagraphStyle(
@@ -519,7 +520,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     for k, v in terms.items():
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
-    elements.append(Spacer(1, 12))
 
     # -----------------------
     # Sign-off
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
