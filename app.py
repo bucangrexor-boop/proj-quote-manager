@@ -316,7 +316,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         fontName="Arial",
         fontSize=7,
         alignment=0,
-        leading=10
+        leading=10,
         spaceAfter = 0
     )
     table_header_style = ParagraphStyle(
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
