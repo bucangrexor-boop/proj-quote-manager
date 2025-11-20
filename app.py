@@ -464,11 +464,11 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("FONTSIZE", (0, 0), (-1, 0), 8),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
-        ("FONTSIZE", (0, 1), (-1, -1), 10),
+        ("FONTSIZE", (0, 1), (-1, -1), 8),
         ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
 
         ("ALIGN", (0, 1), (1, -1), "CENTER"),
@@ -502,7 +502,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
-        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("TOPPADDING", (0, 0), (-1, -1), 3),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
