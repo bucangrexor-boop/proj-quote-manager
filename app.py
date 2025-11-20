@@ -520,7 +520,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     totals_table = Table(
         total_data,
         colWidths=[totals_first_col_width, totals_second_col_width],
-        rowHeights= [18]*len(total_data)
+        rowHeights= None
     )
 
 # Apply styling
@@ -897,6 +897,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
