@@ -40,10 +40,10 @@ SHEET_HEADERS = [
 ]
 
 TERMS_LABELS = [
-    ("Terms of payment", "I2", "J2"),
-    ("Delivery", "I3", "J3"),
-    ("Warranty", "I4", "J4"),
-    ("Price Validity", "I5", "J5"),
+    ("TERMS OF PAYMENT", "I2", "J2"),
+    ("DELIVERY", "I3", "J3"),
+    ("WARRANTY", "I4", "J4"),
+    ("PRICE VALIDITY", "I5", "J5"),
     ("Discount", "I8", "J8")
 ]
 
@@ -315,7 +315,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         "NormalStyle",
         fontName="Arial",
         fontSize=7,
-        alignment=0
+        alignment=0,
+        spaceAfter = 0
     )
     table_header_style = ParagraphStyle(
         "TableHeader",
@@ -518,7 +519,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     for k, v in terms.items():
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
-        elements.append(Spacer(1, 0))
     elements.append(Spacer(1, 12))
 
     # -----------------------
@@ -770,19 +770,19 @@ elif st.session_state.page == "project":
     terms = read_terms_from_ws(ws)
     col1, col2 = st.columns(2)
     with col1:
-        t_payment = st.text_input("Terms of payment", value=terms.get("Terms of payment", ""))
-        t_delivery = st.text_input("Delivery", value=terms.get("Delivery", ""))
+        t_payment = st.text_input("TERMS OF PAYMENT", value=terms.get("TERMS OF PAYMENT", ""))
+        t_DELIVERY = st.text_input("DELIVERY", value=terms.get("DELIVERY", ""))
         t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
     with col2:
-        t_warranty = st.text_input("Warranty", value=terms.get("Warranty", ""))
-        t_price = st.text_input("Price Validity", value=terms.get("Price Validity", ""))
+        t_WARRANTY = st.text_input("WARRANTY", value=terms.get("WARRANTY", ""))
+        t_price = st.text_input("PRICE VALIDITY", value=terms.get("PRICE VALIDITY", ""))
 
     if st.button("Save Terms", key="save_terms"):
         save_terms_to_ws(ws, {
-            "Terms of payment": t_payment,
-            "Delivery": t_delivery,
-            "Warranty": t_warranty,
-            "Price Validity": t_price,
+            "TERMS OF PAYMENT": t_payment,
+            "DELIVERY": t_DELIVERY,
+            "WARRANTY": t_WARRANTY,
+            "PRICE VALIDITY": t_price,
             "Discount": t_discount
         })
         save_totals_to_ws(ws, total, vat, grand_total)
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
