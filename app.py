@@ -392,14 +392,14 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
-        elements.append(Spacer(1, 30))
+        elements.append(Spacer(1, 12))
         elements.append(Paragraph(f"<b>{client_info.get('Office', '')}</b>", office_style))
         elements.append(Paragraph(client_info.get("Company", ""), normal_style))
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 12))
         elements.append(Paragraph("Dear Sir:", normal_style))
         elements.append(Spacer(1, 12))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
-        elements.append(Spacer(1, 20))
+        elements.append(Spacer(1, 12))
   #---------------  
     table_data = []
     header = df.columns.tolist()
@@ -482,7 +482,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 8))
+    elements.append(Spacer(1, 0))
 
 # ----------------------------------------------------
 # TOTALS TABLE (aligned with last column)
@@ -511,14 +511,14 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     ]))
 
     elements.append(totals_table)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 20))
 
     # -----------------------
     # Terms & Conditions
     # -----------------------
     for k, v in terms.items():
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
-        elements.append(Spacer(1, 4))
+        elements.append(Spacer(1, 0))
     elements.append(Spacer(1, 12))
 
     # -----------------------
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
