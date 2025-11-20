@@ -408,7 +408,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
     wrap_style.fontName = "Arial"
-    wrap_style.fontSize = 10
+    wrap_style.fontSize = 8
     wrap_style.leading = 12
 
     for i, row in df.reset_index(drop=True).iterrows():
@@ -464,7 +464,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 8),
+        ("FONTSIZE", (0, 0), (-1, 0), 9),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
