@@ -520,14 +520,14 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     for k, v in terms.items():
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
-
+    elements.append(Spacer(1, 12))
     # -----------------------
     # Sign-off
     # -----------------------
     elements.append(Paragraph("Thank you for doing business with us!", normal_style))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Respectfully yours,", normal_style))
-    elements.append(Spacer(1, 36))
+    elements.append(Spacer(1, 30))
 
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
