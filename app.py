@@ -397,23 +397,25 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
         elements.append(Spacer(1, 10))
-        elements.append(Paragraph({client_info.get('Office', '')}, office_style))
+        elements.append(Paragraph(client_info.get('Office', ''), office_style))
         elements.append(Paragraph(client_info.get("Company", ""), normal_style))
         elements.append(Spacer(1, 10))
         elements.append(Paragraph("Dear Sir:", normal_style))
         elements.append(Spacer(1, 10))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
-        elements.append(Spacer(1, 10))
-  #---------------  
+        elements.append(Spacer(1, 10))  
+    # -----------------------
+    # TABLE DATA PREPARATION
+    # -----------------------
     table_data = []
     header = df.columns.tolist()
     table_data.append(header)
-    
+
     styles = getSampleStyleSheet()
     wrap_style = styles["BodyText"]
     wrap_style.fontName = "Arial"
     wrap_style.fontSize = 7
-    wrap_style.leading = 12
+    wrap_style.leading = 9  # make slightly bigger than font size for line spacing
 
     for i, row in df.reset_index(drop=True).iterrows():
     # --- SAFE ITEM NUMBER HANDLING ---
@@ -449,44 +451,50 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ])
 
 # ----------------------------------------------------
-# COLUMN WIDTHS BASED ON ACTUAL AVAILABLE PAGE SPACE
+# COLUMN WIDTHS BASED ON AVAILABLE PAGE SPACE
 # ----------------------------------------------------
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
-
     proportions = [0.0748, 0.1247, 0.4423, 0.0399, 0.0474, 0.1338, 0.1371]
     total_prop = sum(proportions)
     proportions = [p / total_prop for p in proportions]
-
     col_widths = [available_width * p for p in proportions]
 
-# Create table with wrapping
-    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+# ----------------------------------------------------
+# CREATE MAIN TABLE WITH WRAPPING & AUTO-HEIGHT
+# ----------------------------------------------------
+    table = Table(table_data, colWidths=col_widths, repeatRows=1, rowHeights=None)
 
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
 
+    # Header
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 9),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
+    # Body
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 1), (-1, -1), 8),
         ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
 
+    # Alignment per column
         ("ALIGN", (0, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
         ("ALIGN", (3, 1), (3, -1), "RIGHT"),
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
 
-        ("TOPPADDING", (0, 1), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 0),
+    # Padding proportional to font
+        ("TOPPADDING", (0, 1), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, 0), 3),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 3),
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 0))
+    elements.append(Spacer(1, 5))
 
 # ----------------------------------------------------
 # TOTALS TABLE (aligned with last column)
@@ -496,26 +504,27 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
         ["TOTAL", f"₱ {totals['total']:.2f}"],
-    ]        
+    ]
 
     first_col_width = sum(col_widths[:-1])
     last_col_width = col_widths[-1]
 
-    totals_table = Table(total_data, colWidths=[first_col_width, last_col_width])
-
+    totals_table = Table(total_data, colWidths=[first_col_width, last_col_width], rowHeights=None)
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
 
     elements.append(totals_table)
     elements.append(Spacer(1, 20))
+
 
     # -----------------------
     # Terms & Conditions
@@ -872,6 +881,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
