@@ -496,26 +496,34 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(table)
     elements.append(Spacer(1, 0))
 
-# ----------------------------------------------------
-# TOTALS TABLE (aligned with last column)
-# ----------------------------------------------------
+    # -----------------------
+    # Totals Table (aligned over last 2 columns)
+    # -----------------------
+
+    # Find indexes of the columns
     unit_price_index = header.index("Unit Price")
-    subtotal_index = header.index("Subtotal")    
-    totals_first_col_width = sum(col_widths[unit_price_index:unit_price_index+1-1] or [])
-    totals_first_col_width = col_widths[:unit_price_index]
-    totals_second_col_width = col_widths[subtotal_index]
-                     
+    subtotal_index = header.index("Subtotal")
+
+    # Get the widths of the last two columns
+    totals_first_col_width = col_widths[unit_price_index]   # first column: labels
+    totals_second_col_width = col_widths[subtotal_index]    # second column: amounts
+
+# Prepare totals data
     total_data = [
         ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
         ["Discount", f"₱ {totals['discount']:.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
         ["TOTAL", f"₱ {totals['total']:.2f}"],
     ]
+
+# Create the totals table
     totals_table = Table(
         total_data,
         colWidths=[totals_first_col_width, totals_second_col_width],
-        rowHeights=None
-)
+        rowHeights=None  # optional: you can set [18]*len(total_data) for fixed row height
+    )
+
+# Apply styling
     totals_table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("FONTNAME", (0, 0), (-1, -1), "Arial"),
@@ -528,6 +536,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
 
+# Add to PDF elements
     elements.append(totals_table)
     elements.append(Spacer(1, 20))
 
@@ -887,6 +896,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
