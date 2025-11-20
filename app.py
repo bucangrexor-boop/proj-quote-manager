@@ -487,14 +487,14 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
 
     # Padding proportional to font
-        ("TOPPADDING", (0, 1), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 2),
-        ("TOPPADDING", (0, 0), (-1, 0), 3),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 3),
+        ("TOPPADDING", (0, 1), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 0),
+        ("TOPPADDING", (0, 0), (-1, 0), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 5))
+    elements.append(Spacer(1, 0))
 
 # ----------------------------------------------------
 # TOTALS TABLE (aligned with last column)
@@ -516,8 +516,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
     ]))
@@ -881,6 +881,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
