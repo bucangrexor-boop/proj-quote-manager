@@ -364,7 +364,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BOTTOMPADDING", (0, 0), (-1, -1), 0)
     ]))
     elements.append(header_table)
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 0))
 
     # -----------------------
     # Price Quote Title
@@ -870,6 +870,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
