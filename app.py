@@ -389,38 +389,43 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         leading=7,
         alignment=2         # right
     )
+
     table_data_paragraphs = []
+
     for i, row in enumerate(table_data):
         new_row = []
         for j, cell in enumerate(row):
+        # Header row
             if i == 0:
-            # Header row: keep as plain text
-                new_row.append(cell)
+                new_row.append(cell)  # keep header as plain text
             else:
-            # Only wrap Description column (index 2)
+            # Description column (index 2)
                 if j == 2:
-                    # If cell is already Paragraph, keep it, else wrap text
                     if not isinstance(cell, Paragraph):
                         new_row.append(Paragraph(str(cell), body_style))
                     else:
                         new_row.append(cell)
+            # Qty column (index 3)
                 elif j == 3:
                     try:
                         qty_val = int(cell)
                     except:
                         qty_val = 0
                     new_row.append(Paragraph(f"{qty_val}", body_style_right))
+            # Unit Price + Subtotal columns (indexes 5,6)
                 elif j in [5, 6]:
                     try:
                         num_val = float(cell)
                     except:
                         num_val = 0
-                    new_row.append(Paragraph(str(cell), body_style_right))
+                # format with commas and 2 decimals
+                    new_row.append(Paragraph(f"{num_val:,.2f}", body_style_right))
             # Other columns (Item, Part No., Unit)
                 else:
                     new_row.append(Paragraph(str(cell), body_style))
- 
         table_data_paragraphs.append(new_row)
+
+                     
 
 # -----------------------
 # Main Table (full width)
@@ -728,6 +733,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
