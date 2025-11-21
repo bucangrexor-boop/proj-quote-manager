@@ -471,6 +471,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Terms
     # -----------------------
+    elements.append(Spacer(1, 32))
     for k, v in terms.items():
         if k == "Discount":
             continue
@@ -725,6 +726,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
