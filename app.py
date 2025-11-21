@@ -18,7 +18,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer)
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, KeepInFrame)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -489,55 +489,38 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     # -----------------------
     # Totals Table (aligned over last 2 columns)
-    # -----------------------
+    # ----------------------
 
-    # Find indexes of the columns
-    unit_price_index = header.index("Unit Price")
-    subtotal_index = header.index("Subtotal")
-
-    # Get the widths of the last two columns
-    totals_first_col_width = col_widths[unit_price_index]   # first column: labels
-    totals_second_col_width = col_widths[subtotal_index]    # second column: amounts
-
-# Prepare totals data
-    total_data = [
-        ["Subtotal", f"₱ {totals['subtotal']:.2f}"],
-        ["Discount", f"₱ {totals['discount']:.2f}"],
-        ["VAT (12%)", f"₱ {totals['vat']:.2f}"],
-        ["TOTAL", f"₱ {totals['total']:.2f}"],
+    totals_data = [
+        ["Subtotal", f"₱ {totals['subtotal']:,.2f}"],
+        ["Discount", f"₱ {totals['discount']:,.2f}"],
+        ["VAT (12%)", f"₱ {totals['vat']:,.2f}"],
+        ["TOTAL", f"₱ {totals['total']:,.2f}"]
     ]
 
-# Create the totals table
+# Create totals table
     totals_table = Table(
-        total_data,
-        colWidths=[totals_first_col_width, totals_second_col_width],
-        rowHeights= None
+        totals_data,
+        colWidths=[100, 120],      # ← Make these narrower so table stays right-side
+        hAlign='RIGHT'             # ← THIS IS THE IMPORTANT LINE
     )
 
-# Apply styling
     totals_table.setStyle(TableStyle([
-        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
-        ("FONTNAME", (0, 0), (-1, -1), "Arial"),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
-        ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
+        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+        ('FONTNAME', (0,0), (-1,-2), 'Helvetica'),
+        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0,-1), (-1,-1), colors.lightgreen),
+        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black),
+        ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
     ]))
-    left_width = sum(col_widths[: unit_price_index])
-    totals_widths = [totals_first_col_width, totals_second_col_width]  # widths of totals table
-    dummy_width = left_width
 
-    wrapper_table = Table(
-        [[totals_table]],
-        colWidths=[dummy_width + sum(totals_widths)]
-    )
+# Add a small space before totals appear
+    story.append(Spacer(1, 12))
 
-    wrapper_table.hAlign = 'LEFT'
-    elements.append(wrapper_table)
-    elements.append(Spacer(1, 20))
+# Add to the story
+    story.append(totals_table)
+
 
     # -----------------------
     # Terms & Conditions
@@ -794,6 +777,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
