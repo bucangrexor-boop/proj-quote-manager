@@ -400,19 +400,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=8, leading=10, alignment=0)
     table_data_paragraphs = []
-        for i, row in enumerate(table_data):
-            new_row = []
-            for j, cell in enumerate(row):
-                if i == 0:
+    for i, row in enumerate(table_data):
+         new_row = []
+         for j, cell in enumerate(row):
+              if i == 0:
             # Header row: keep plain, no wrap
-                    new_row.append(str(cell))
-                else:
+                new_row.append(str(cell))
+             else:
             # Wrap only Description column
-                    if j == 2:  # Description
-                        new_row.append(Paragraph(str(cell), body_style))
-                    else:
-                        new_row.append(str(cell))
-            table_data_paragraphs.append(new_row)
+                 if j == 2:  # Description
+                     new_row.append(Paragraph(str(cell), body_style))
+                else:
+                      new_row.append(str(cell))
+         table_data_paragraphs.append(new_row)
 
 # -----------------------
 # Main Table
@@ -721,6 +721,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
