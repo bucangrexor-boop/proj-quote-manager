@@ -15,18 +15,14 @@ from datetime import datetime
 from google.oauth2 import service_account
 from gspread.exceptions import APIError
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import (
-    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
-)
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.utils import ImageReader
 from reportlab.platypus import Image as RLImage
-from reportlab.platypus import Spacer
 
 # Streamlit Configuration
 st.set_page_config(page_title="Project Quotation Manager", layout="wide")
@@ -172,11 +168,6 @@ def apply_sheet_updates(ws, old_df: pd.DataFrame, new_df: pd.DataFrame):
 
     old_len = len(old)
     new_len = len(new)
-
-    try:
-        st.write(f"ok")
-    except Exception:
-        pass
 
     if old_len == 0 and new_len > 0:
         values = [SHEET_HEADERS] + new[SHEET_HEADERS].fillna("").astype(str).values.tolist()
@@ -638,7 +629,6 @@ elif st.session_state.page == "create_project":
 # Project Page (Optimized) - REPLACEMENT BLOCK
 # ----------------------
 elif st.session_state.page == "project":
-    refresh_container = st.empty()
     project = st.session_state.get("current_project")
 
     # Get worksheet
@@ -647,22 +637,22 @@ elif st.session_state.page == "project":
         st.session_state.ws_project = project
     ws = st.session_state.ws
 
-    # Initialize / load per-project DataFrame into session state (single source of truth)
     session_key = f"project_df_{project}"
     if session_key not in st.session_state:
         st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
-        st.session_state[f"{session_key}_loaded"] = True
 
-    # df_ref is the live DataFrame the editor uses
-    df_clean = st.session_state[session_key].copy()
+    df_live = st.session_state[session_key]
 
-    df_clean["Qty"] = pd.to_numeric(df_clean["Qty"], errors="coerce").fillna(0)
-    df_clean["Unit Price"] = pd.to_numeric(df_clean["Unit Price"], errors="coerce").fillna(0)
-    df_clean["Subtotal"] = (df_clean["Qty"] * df_clean["Unit Price"]).round(2)
+    # Show editable table
+    edited_df = st.data_editor(df_live, key=f"data_editor_{project}")
 
-    # Save cleaned version before editor → prevents "first key disappears"
-    st.session_state[session_key] = df_clean.copy()
-
+    # Only clean and save if changed
+    if not edited_df.equals(df_live):
+        edited_df["Qty"] = pd.to_numeric(edited_df["Qty"], errors="coerce").fillna(0)
+        edited_df["Unit Price"] = pd.to_numeric(edited_df["Unit Price"], errors="coerce").fillna(0)
+        edited_df["Subtotal"] = (edited_df["Qty"] * edited_df["Unit Price"]).round(2)
+        st.session_state[session_key] = edited_df.copy()
+        
     # Header Buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
@@ -904,6 +894,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
