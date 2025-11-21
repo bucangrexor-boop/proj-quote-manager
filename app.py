@@ -671,16 +671,10 @@ elif st.session_state.page == "project":
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
     with col2:
-        if st.button("🔄 Refresh", key="refresh_sheet"):
-            with st.spinner("Reloading data..."):
-                st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
-                st.session_state.unsaved_changes = False
-            st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
-    with col4:
         if st.button("⬅️ Back", key="back_top"):
             st.session_state.page = "welcome"
             st.rerun()
-    with col5:
+    with col4:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # -----------------------
@@ -832,5 +826,6 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
