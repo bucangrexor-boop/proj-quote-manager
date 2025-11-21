@@ -284,6 +284,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     price_quote_style = ParagraphStyle("PriceQuote", fontName="Calibri-Bold", fontSize=8, alignment=1)
     ref_style = ParagraphStyle("RefStyle", fontName="Arial-Narrow", fontSize=7, alignment=1)
+    ref2_style = ParagraphStyle("Ref2Style", fontName="Arial-Narrow", fontSize=7, alignment=0)
     title_style = ParagraphStyle("TitleStyle", fontName="Arial-Bold", fontSize=8, alignment=0)
     office_style = ParagraphStyle("OfficeStyle", fontName="Arial-Bold", fontSize=7, alignment=0, leading=7)
     normal_style = ParagraphStyle("NormalStyle", fontName="Arial", fontSize=7, alignment=0, leading=7)
@@ -486,7 +487,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(Spacer(1, 30))
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
-        elements.append(Paragraph("Ants Technologies, Inc.", ref_style))
+        elements.append(Paragraph("Ants Technologies, Inc.", ref2_style))
 
     # -----------------------
     # Build PDF
@@ -726,6 +727,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
