@@ -376,8 +376,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     # Wrap description column
     # -----------------------
-# Wrap table data for main table
-# -----------------------
+    header_style = ParagraphStyle(
+        name="HeaderStyle",
+        fontName="Arial-Bold",
+        fontSize=9,        # <-- header font size
+        alignment=1         # center
+    )  
+    body_style_right = ParagraphStyle(
+        name="BodyStyleRight",
+        fontName="Arial",
+        fontSize=8,
+        leading=10,
+        alignment=2         # right
+    )
     table_data_paragraphs = []
     for i, row in enumerate(table_data):
         new_row = []
@@ -393,8 +404,12 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         new_row.append(Paragraph(str(cell), body_style))
                     else:
                         new_row.append(cell)
+                elif j in [3, 5, 6]:
+                    new_row.append(Paragraph(str(cell), body_style_right))
+            # Other columns (Item, Part No., Unit)
                 else:
-                    new_row.append(cell)
+                    new_row.append(Paragraph(str(cell), body_style))
+ 
         table_data_paragraphs.append(new_row)
 
 # -----------------------
@@ -703,6 +718,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
