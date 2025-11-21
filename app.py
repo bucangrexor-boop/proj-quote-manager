@@ -417,7 +417,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
     ]))
     elements.append(table)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 0))
     # -----------------------
     # Totals Table
     # -----------------------
@@ -453,7 +453,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         if k == "Discount":
             continue
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
-        elements.append(Spacer(1, 12))
 
     # -----------------------
     # Sign Off
@@ -704,6 +703,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
