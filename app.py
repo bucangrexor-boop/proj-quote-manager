@@ -453,11 +453,20 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("TOPPADDING", (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ("LEFTPADDING", (0,0), (-1,-1), 1),
+        ("RIGHTPADDING", (0,0), (-1,-1), 1),
     ]))
     wrapper_table = Table([[Spacer(left_space_width, 0), totals_table]], colWidths=[left_space_width, totals_width])
-    wrapper_table.setStyle(TableStyle([("ALIGN", (1, 0), (1, 0), "RIGHT")]))
+    wrapper_table.setStyle(TableStyle([
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("TOPPADDING", (0,0), (-1,-1), 0),
+        ("BOTTOMPADDING", (0,0), (-1,-1), 0),
+        ("LEFTPADDING", (0,0), (-1,-1), 0),
+        ("RIGHTPADDING", (0,0), (-1,-1), 0),
+    ]))
     elements.append(wrapper_table)
-    elements.append(Spacer(1, 20))
 
     # -----------------------
     # Terms
@@ -716,6 +725,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
