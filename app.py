@@ -288,7 +288,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     office_style = ParagraphStyle("OfficeStyle", fontName="Arial-Bold", fontSize=7, alignment=0, leading=7)
     normal_style = ParagraphStyle("NormalStyle", fontName="Arial", fontSize=7, alignment=0, leading=7)
     wrap_style = ParagraphStyle(name="WrapStyle", fontName="Arial", fontSize=7, leading=7)
-    body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=8, leading=10, alignment=0)
+    body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=7, leading=7, alignment=0)
     totals_style = ParagraphStyle(name="TotalsStyle", fontName="Arial", fontSize=7, leading=7)
 
     # -----------------------
@@ -704,6 +704,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
