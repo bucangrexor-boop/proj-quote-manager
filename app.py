@@ -374,21 +374,23 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     proportions = [p / sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
 
-    # Wrap table data for description column
+    # Wrap description column
     table_data_paragraphs = []
     for i, row in enumerate(table_data):
         new_row = []
         for j, cell in enumerate(row):
             if i == 0:
-                new_row.append(cell)  # header row
+                new_row.append(cell)  # header
             else:
-                if j == 2:  # Description column
+                if j == 2:
                     new_row.append(Paragraph(str(cell), body_style))
                 else:
                     new_row.append(cell)
         table_data_paragraphs.append(new_row)
 
-    # Main Table
+    # -----------------------
+    # Main Table (full width)
+    # -----------------------
     table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
@@ -405,9 +407,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
     ]))
-    max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)
-    table_frame = KeepInFrame(available_width, max_table_height, content=[table], mode='shrink')
-    elements.append(table_frame)
+    elements.append(table)
     elements.append(Spacer(1, 12))
 
     # -----------------------
@@ -416,14 +416,14 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     unit_price_index, subtotal_index = 5, 6
     left_space_width = sum(col_widths[:unit_price_index])
     totals_width = col_widths[unit_price_index] + col_widths[subtotal_index]
+
     totals_rows = [
         ["Subtotal", f"₱ {totals['subtotal']:,.2f}"],
         ["Discount", f"₱ {totals['discount']:,.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:,.2f}"],
         ["TOTAL", f"₱ {totals['total']:,.2f}"]
     ]
-    totals_data = [[Paragraph(label, totals_style), Paragraph(value, totals_style)]
-                   for label, value in totals_rows]
+    totals_data = [[Paragraph(label, totals_style), Paragraph(value, totals_style)] for label, value in totals_rows]
     totals_data[-1] = [Paragraph("<b>TOTAL</b>", totals_style),
                        Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style)]
     totals_table = Table(totals_data, colWidths=[col_widths[unit_price_index], col_widths[subtotal_index]])
@@ -433,8 +433,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
-    wrapper_table = Table([[Spacer(left_space_width, 0), totals_table]],
-                          colWidths=[left_space_width, totals_width])
+    wrapper_table = Table([[Spacer(left_space_width, 0), totals_table]], colWidths=[left_space_width, totals_width])
     wrapper_table.setStyle(TableStyle([("ALIGN", (1, 0), (1, 0), "RIGHT")]))
     elements.append(wrapper_table)
     elements.append(Spacer(1, 20))
@@ -465,6 +464,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
 
 
 # ===============================================================
@@ -696,6 +696,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
