@@ -600,14 +600,12 @@ elif st.session_state.page == "project":
                 "Edited By": ws.acell("J18").value or ""
             }
             pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info)
-            st.success("✅ PDF generated!")
-
         except Exception as e:
             st.error(f"❌ Failed to generate PDF: {e}")
     with col5:
         if pdf_buffer:
             st.download_button(
-                label="⬇️ Download Price Quote PDF",
+                label="⬇️ Download PDF",
                 data=pdf_buffer,
                 file_name=f"{project}_quotation.pdf",
                 mime="application/pdf",
@@ -726,6 +724,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
