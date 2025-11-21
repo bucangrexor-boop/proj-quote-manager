@@ -574,7 +574,7 @@ elif st.session_state.page == "project":
 
     # Header buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
-    with col2:
+    with col1:
         if st.button("⬅️ Back", key="back_top"):
             st.session_state.page = "welcome"
 
@@ -724,6 +724,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
