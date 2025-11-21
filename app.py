@@ -398,15 +398,16 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Wrap all cells in Paragraphs
     # -----------------------
-    header_style = ParagraphStyle(name="HeaderStyle", fontName="Arial-Bold", fontSize=9, leading=11, alignment=1)
     body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=8, leading=10, alignment=0)
 
     table_data_paragraphs = []
     for i, row in enumerate(table_data):
         new_row = []
         for cell in row:
-            style = header_style if i==0 else body_style
-            new_row.append(Paragraph(str(cell), style) if not isinstance(cell, Paragraph) else cell)
+            if i==0:
+                new_row.append(str(cell))
+            else
+                new_row.append(Paragraph(str(cell), body_style) if not isinstance(cell, Paragraph) else cell)
         table_data_paragraphs.append(new_row)
 
     # -----------------------
@@ -717,6 +718,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
