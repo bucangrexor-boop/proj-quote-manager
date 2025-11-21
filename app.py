@@ -455,12 +455,16 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("TOPPADDING", (0,0), (-1,-1), 1),
         ("BOTTOMPADDING", (0,0), (-1,-1), 1),
+        ("LEFTPADDING", (0,0), (-1,-1), 1),
+        ("RIGHTPADDING", (0,0), (-1,-1), 1),
     ]))
     wrapper_table = Table([[Spacer(left_space_width, 0), totals_table]], colWidths=[left_space_width, totals_width])
     wrapper_table.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, 0), "RIGHT"),
         ("TOPPADDING", (0,0), (-1,-1), 1),
         ("BOTTOMPADDING", (0,0), (-1,-1), 1),
+        ("LEFTPADDING", (0,0), (-1,-1), 0),
+        ("RIGHTPADDING", (0,0), (-1,-1), 0),
     ]))
     elements.append(wrapper_table)
 
@@ -721,6 +725,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
