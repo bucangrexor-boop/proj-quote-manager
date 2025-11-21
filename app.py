@@ -370,7 +370,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Column widths
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
-    proportions = [0.0748, 0.1247, 0.4423, 0.0399, 0.0474, 0.1338, 0.1371]
+    proportions = [0.0748, 0.1247, 0.4420, 0.0402, 0.0474, 0.1338, 0.1371]
     proportions = [p / sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
 
@@ -718,6 +718,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
