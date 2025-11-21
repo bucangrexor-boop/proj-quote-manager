@@ -585,7 +585,6 @@ if st.session_state.page == "welcome":
     st.header("Welcome!")
     if st.button("Create a Project Quote", key="btn_create_project_quote"):
         st.session_state.page = "create_project"
-        st.rerun()
 
     st.subheader("Existing Projects")
     worksheets = [ws.title for ws in ss.worksheets()]
@@ -600,7 +599,6 @@ if st.session_state.page == "welcome":
             if st.button("Open", key=f"open_{name}"):
                 st.session_state.current_project = name
                 st.session_state.page = "project"
-                st.rerun()
 
 # ----------------------
 # Create Project Page
@@ -618,7 +616,6 @@ elif st.session_state.page == "create_project":
             ws = worksheet_create_with_headers(ss, project_name)
             st.session_state.current_project = project_name
             st.session_state.page = "project"
-            st.rerun()
 
     if st.button("Back", key="btn_back_to_welcome"):
         st.session_state.page = "welcome"
@@ -651,19 +648,10 @@ elif st.session_state.page == "project":
         st.markdown(f"### 🧾 Project: {project}")
 
     with col2:
-        if st.button("🔄 Refresh", key="refresh_sheet"):
-            with st.spinner("Reloading data..."):
-                reloaded = df_from_worksheet(ws).reset_index(drop=True)
-                st.session_state[session_key] = reloaded
-                st.session_state.unsaved_changes = False
-            st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
-
-    with col4:
         if st.button("⬅️ Back", key="back_top"):
             st.session_state.page = "welcome"
-            st.rerun()
-
-    with col5:
+            
+    with col4:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # -----------------------
@@ -829,6 +817,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
