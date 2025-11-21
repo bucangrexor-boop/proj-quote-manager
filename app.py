@@ -410,7 +410,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
             # Wrap only Description column
                  if j == 2:  # Description
                      new_row.append(Paragraph(str(cell), body_style))
-                else:
+                 else:
                       new_row.append(str(cell))
          table_data_paragraphs.append(new_row)
 
@@ -721,6 +721,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
