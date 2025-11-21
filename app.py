@@ -290,7 +290,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     wrap_style = ParagraphStyle(name="WrapStyle", fontName="Arial", fontSize=7, leading=7)
     body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=7, leading=7, alignment=0)
     totals_style = ParagraphStyle(name="TotalsStyle", fontName="Arial", fontSize=7, leading=7)
-
+    header_style = ParagraphStyle(name="HeaderStyle", fontName="Arial-Bold", fontSize=9,)  
+    body_style_right = ParagraphStyle(name="BodyStyleRight", fontName="Arial", fontSize=7, leading=7, alignment=0)
     # -----------------------
     # Load logos
     # -----------------------
@@ -375,37 +376,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     col_widths = [available_width * p for p in proportions]
 
     # Wrap description column
-    # -----------------------
-    header_style = ParagraphStyle(
-        name="HeaderStyle",
-        fontName="Arial-Bold",
-        fontSize=9,        # <-- header font size
-        alignment=1         # center
-    )  
-    body_style_right = ParagraphStyle(
-        name="BodyStyleRight",
-        fontName="Arial",
-        fontSize=7,
-        leading=7,
-        alignment=0         # right
-    )
-
+                     
     table_data_paragraphs = []
-
     for i, row in enumerate(table_data):
         new_row = []
         for j, cell in enumerate(row):
-        # Header row
             if i == 0:
                 new_row.append(cell)  # keep header as plain text
             else:
-            # Description column (index 2)
                 if j == 2:
                     if not isinstance(cell, Paragraph):
                         new_row.append(Paragraph(str(cell), body_style))
                     else:
                         new_row.append(cell)
-        
                 elif j in [3, 5, 6]:
                     if j == 3:  # Qty
                         try:
@@ -413,20 +396,18 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         except:
                             qty_val = 0
                         new_row.append(str(qty_val))
-                    else:       # Unit Price / Subtotal
+                    else:    
                         try:
                             num_val = float(cell)
                         except:
                             num_val = 0
                         new_row.append(f"{num_val:,.2f}")
-            # Other columns -> wrap
                 else:
-                    new_row.append(Paragraph(str(cell), body_style))
+                    new_row.append(Paragraph(str(cell), body_style_right ))
         table_data_paragraphs.append(new_row)
-
-# -----------------------
-# Main Table (full width)
-# -----------------------
+        
+    # Main Table (full width)
+                     
     table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
@@ -733,6 +714,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
