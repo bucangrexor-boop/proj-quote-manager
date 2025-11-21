@@ -388,31 +388,49 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Column Widths
     # -----------------------
+
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
-                 #Item----Part No.-Descr-- --Qty ---- Unit--Price---Subtotal
+
+# Column proportions: Item, Part No., Description, Qty, Unit, Unit Price, Subtotal
     proportions = [0.0748, 0.1247, 0.4423, 0.0399, 0.0474, 0.1338, 0.1371]
-    proportions = [p/sum(proportions) for p in proportions]
+    proportions = [p / sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
 
-    # -----------------------
-    # Wrap all cells in Paragraphs
-    # -----------------------
-    body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=8, leading=10, alignment=0)
+# -----------------------
+# Styles
+# -----------------------
+    body_style = ParagraphStyle(
+        name="BodyStyle",
+        fontName="Arial",
+        fontSize=8,
+        leading=10,
+        alignment=0,  # left
+    )
+    totals_style = ParagraphStyle(
+        name="TotalsStyle",
+        fontName="Arial",
+        fontSize=7,
+        leading=7,
+    )
+
+# -----------------------
+# Wrap table data
+# -----------------------
     table_data_paragraphs = []
     for i, row in enumerate(table_data):
-         new_row = []
-         for j, cell in enumerate(row):
-              if i == 0:
-            # Header row: keep plain, no wrap
+        new_row = []
+        for j, cell in enumerate(row):
+            if i == 0:
+                # Header row: keep as plain text
                 new_row.append(str(cell))
-              else:
-            # Wrap only Description column
-                 if j == 2:  # Description
-                     new_row.append(Paragraph(str(cell), body_style))
-                 else:
-                      new_row.append(str(cell))
-         table_data_paragraphs.append(new_row)
+            else:
+                # Wrap Description column only
+                if j == 2:
+                    new_row.append(Paragraph(str(cell), body_style))
+                else:
+                    new_row.append(str(cell))
+        table_data_paragraphs.append(new_row)
 
 # -----------------------
 # Main Table
@@ -421,25 +439,30 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("ALIGN", (0, 0), (1, 0), "CENTER"),   # Header Item + Part Number
-        ("ALIGN", (2, 0), (-1, 0), "CENTER"),  # Header Description + others
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-
+    
+    # Header alignment
+        ("ALIGN", (0, 0), (1, 0), "CENTER"),   # Item + Part No.
+        ("ALIGN", (2, 0), (-1, 0), "CENTER"),  # Description + others
+    
+    # Body alignment
         ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Item
-        ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Part Number
+        ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Part No.
         ("ALIGN", (2, 1), (2, -1), "LEFT"),    # Description
         ("ALIGN", (3, 1), (3, -1), "CENTER"),  # Qty
         ("ALIGN", (4, 1), (4, -1), "CENTER"),  # Unit
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),   # Unit Price + Subtotal
     ]))
-    elements.append(table)
-    max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)  # 200 for logos and text above
+
+# Use KeepInFrame to prevent table from overflowing
+    max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)  # reserve space above
     table_frame = KeepInFrame(available_width, max_table_height, content=[table], mode='shrink')
     elements.append(table_frame)
-    elements.append(Spacer(1, 0))
-    # -----------------------
-    # Totals Table
-    # -----------------------
+    elements.append(Spacer(1, 12))
+
+# -----------------------
+# Totals Table
+# -----------------------
     unit_price_index, subtotal_index = 5, 6
     left_space_width = sum(col_widths[:unit_price_index])
     totals_width = col_widths[unit_price_index] + col_widths[subtotal_index]
@@ -451,10 +474,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ["TOTAL", f"₱ {totals['total']:,.2f}"]
     ]
 
-    totals_style = ParagraphStyle(name="TotalsBody", fontName="Arial", fontSize=7, leading=7)
-    totals_data = [[Paragraph(c[0], totals_style), Paragraph(c[1], totals_style)] for c in totals_rows]
-    totals_data[-1] = [Paragraph("<b>TOTAL</b>", totals_style), Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style)]
+# Wrap totals in Paragraphs
+    totals_data = [
+        [Paragraph(label, totals_style), Paragraph(value, totals_style)]
+        for label, value in totals_rows
+    ]
 
+# Bold last row
+    totals_data[-1] = [
+        Paragraph("<b>TOTAL</b>", totals_style),
+        Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style)
+    ]
+
+# Totals table
     totals_table = Table(totals_data, colWidths=[col_widths[unit_price_index], col_widths[subtotal_index]])
     totals_table.setStyle(TableStyle([
         ("ALIGN", (1,0), (1,-1), "RIGHT"),
@@ -463,12 +495,12 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
     ]))
 
+# Wrap totals table with left spacer
     wrapper_table = Table([[Spacer(left_space_width,0), totals_table]],
-                          colWidths=[left_space_width, totals_width])
+                      colWidths=[left_space_width, totals_width])
     wrapper_table.setStyle(TableStyle([("ALIGN", (1,0), (1,0), "RIGHT")]))
     elements.append(wrapper_table)
     elements.append(Spacer(1, 20))
-
     # -----------------------
     # Terms
     # -----------------------
@@ -724,6 +756,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
