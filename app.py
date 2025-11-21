@@ -296,17 +296,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     )
     office_style = ParagraphStyle(
         "OfficeStyle", fontName="Arial-Bold",
-        fontSize=7, alignment=0, leading=10
+        fontSize=7, alignment=0, leading=7
     )
     normal_style = ParagraphStyle(
         "NormalStyle", fontName="Arial",
-        fontSize=7, alignment=0, leading=10
+        fontSize=7, alignment=0, leading=7
     )
     wrap_style = ParagraphStyle(
         name="WrapStyle",
         fontName="Arial",
         fontSize=7,
-        leading=9
+        leading=7
     )
 
     # -----------------------
@@ -429,7 +429,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)  # 200 for logos and text above
     table_frame = KeepInFrame(available_width, max_table_height, content=[table], mode='shrink')
     elements.append(table_frame)
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 0))
 
     # -----------------------
     # Totals Table
@@ -445,7 +445,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ["TOTAL", f"₱ {totals['total']:,.2f}"]
     ]
 
-    totals_style = ParagraphStyle(name="TotalsBody", fontName="Arial", fontSize=7, leading=9)
+    totals_style = ParagraphStyle(name="TotalsBody", fontName="Arial", fontSize=7, leading=7)
     totals_data = [[Paragraph(c[0], totals_style), Paragraph(c[1], totals_style)] for c in totals_rows]
     totals_data[-1] = [Paragraph("<b>TOTAL</b>", totals_style), Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style)]
 
@@ -718,6 +718,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
