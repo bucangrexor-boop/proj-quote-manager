@@ -527,7 +527,7 @@ for i, row in enumerate(table_data_str):
     # -----------------------
     doc.build(elements)
     buffer.seek(0)
-    return buffer
+        return buffer
 
 # ===============================================================
 # UI Pages
@@ -758,6 +758,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
