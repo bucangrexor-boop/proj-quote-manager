@@ -417,21 +417,23 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 # -----------------------
 # Wrap table data
 # -----------------------
-    table_data_paragraphs = []
-    for i, row in enumerate(table_data):
-        new_row = []
-        for j, cell in enumerate(row):
-            if i == 0:
-                # Header row: keep as plain text
-                new_row.append(str(cell))
-            else:
-                # Wrap Description column only
-                if j == 2:
-                    new_row.append(Paragraph(str(cell), body_style))
-                else:
-                    new_row.append(str(cell))
-        table_data_paragraphs.append(new_row)
+   # Ensure all table data are strings first
+table_data_str = [[str(cell) for cell in row] for row in table_data]
 
+table_data_paragraphs = []
+for i, row in enumerate(table_data_str):
+    new_row = []
+    for j, cell in enumerate(row):
+        if i == 0:
+            # Header row: keep as plain text
+            new_row.append(cell)
+        else:
+            # Wrap only Description column (index 2)
+            if j == 2:
+                new_row.append(Paragraph(cell, body_style))
+            else:
+                new_row.append(cell)
+    table_data_paragraphs.append(new_row)
 # -----------------------
 # Main Table
 # -----------------------
@@ -756,6 +758,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
