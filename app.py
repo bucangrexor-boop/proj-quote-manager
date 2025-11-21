@@ -405,27 +405,24 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         new_row.append(Paragraph(str(cell), body_style))
                     else:
                         new_row.append(cell)
-            # Qty column (index 3)
-                elif j == 3:
-                    try:
-                        qty_val = int(cell)
-                    except:
-                        qty_val = 0
-                    new_row.append(Paragraph(f"{qty_val}", body_style_right))
-            # Unit Price + Subtotal columns (indexes 5,6)
-                elif j in [5, 6]:
-                    try:
-                        num_val = float(cell)
-                    except:
-                        num_val = 0
-                # format with commas and 2 decimals
-                    new_row.append(Paragraph(f"{num_val:,.2f}", body_style_right))
-            # Other columns (Item, Part No., Unit)
+        
+                elif j in [3, 5, 6]:
+                    if j == 3:  # Qty
+                        try:
+                            qty_val = int(cell)
+                        except:
+                            qty_val = 0
+                        new_row.append(str(qty_val))
+                    else:       # Unit Price / Subtotal
+                        try:
+                            num_val = float(cell)
+                        except:
+                            num_val = 0
+                        new_row.append(f"{num_val:,.2f}")
+            # Other columns -> wrap
                 else:
                     new_row.append(Paragraph(str(cell), body_style))
         table_data_paragraphs.append(new_row)
-
-                     
 
 # -----------------------
 # Main Table (full width)
@@ -442,8 +439,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (0, 1), (0, -1), "CENTER"),
         ("ALIGN", (1, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
-        ("ALIGN", (3, 1), (3, -1), "CENTER"),
-        ("ALIGN", (4, 1), (4, -1), "CENTER"),
+        ("ALIGN", (3, 1), (3, -1), "RIGHT"),
+        ("ALIGN", (4, 1), (4, -1), "RIGHT"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
     ]))
     elements.append(table)
@@ -733,6 +730,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
