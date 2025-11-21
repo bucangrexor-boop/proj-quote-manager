@@ -358,7 +358,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     # Reference
     elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
-    elements.append(Spacer(1, 2))
+    elements.append(Spacer(1, 0))
 
     # Date
     date_str = datetime.now().strftime("%d-%b-%y")
@@ -366,7 +366,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         f'<para alignment="right"><b>Date</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{date_str}</para>',
         ref_style
     ))
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 10))
 
     # Client Info
     if client_info:
@@ -427,55 +427,81 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     # Main Table
     # -----------------------
-    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+
+    header_style = ParagraphStyle(
+        name="HeaderStyle",
+        fontName="Arial-Bold",
+        fontSize=9,
+        alignment=1,  # CENTER
+        leading=11    # line height slightly bigger than font size
+    )
+
+    body_style = ParagraphStyle(
+        name="BodyStyle",
+        fontName="Arial",
+        fontSize=8,
+        alignment=0,  # LEFT
+        leading=10
+    )
+
+# Wrap main table data in Paragraphs
+    table_data_paragraphs = []
+    for i, row in enumerate(table_data):
+        new_row = []
+        for cell in row:
+            style = header_style if i == 0 else body_style
+            new_row.append(Paragraph(str(cell), style))
+        table_data_paragraphs.append(new_row)
+    
+# -----------------------
+# Main Table
+# -----------------------
+    table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
-        ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 9),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-
-        ("FONTNAME", (0, 1), (-1, -1), "Arial"),
-        ("FONTSIZE", (0, 1), (-1, -1), 8),
-        ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
-
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("ALIGN", (0, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
         ("ALIGN", (3, 1), (3, -1), "RIGHT"),
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
     ]))
-
     elements.append(table)
-    elements.append(Spacer(1, 6))
+    elements.append(Spacer(1, 0))
 
-    # -----------------------
-    # TOTALS TABLE — EXACT MATCH UNDER COL 5–6
-    # -----------------------
+# -----------------------
+# TOTALS TABLE — EXACT MATCH UNDER COL 5–6
+# -----------------------
     unit_price_index = 5
     subtotal_index = 6
 
     left_space_width = sum(col_widths[:unit_price_index])
     totals_width = col_widths[unit_price_index] + col_widths[subtotal_index]
 
-    totals_data = [
+    totals_data_paragraphs = []
+    for row in [
         ["Subtotal", f"₱ {totals['subtotal']:,.2f}"],
         ["Discount", f"₱ {totals['discount']:,.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:,.2f}"],
         ["TOTAL", f"₱ {totals['total']:,.2f}"]
-    ]
+    ]:
+        totals_data_paragraphs.append([Paragraph(str(row[0]), body_style),
+                                   Paragraph(str(row[1]), body_style)])
+
+# Bold the last row TOTAL
+    totals_data_paragraphs[-1][0] = Paragraph("<b>TOTAL</b>", body_style)
+    totals_data_paragraphs[-1][1] = Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", body_style)
 
     totals_table = Table(
-        totals_data,
+        totals_data_paragraphs,
         colWidths=[col_widths[unit_price_index], col_widths[subtotal_index]]
     )
-
     totals_table.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
-        ("FONTNAME", (0, 0), (-1, -2), "Arial"),
-        ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
-        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
 
@@ -486,10 +512,8 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     wrapper_table.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, 0), "RIGHT")
     ]))
-
     elements.append(wrapper_table)
     elements.append(Spacer(1, 20))
-
     # -----------------------
     # Terms
     # -----------------------
@@ -748,6 +772,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
