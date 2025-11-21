@@ -637,122 +637,94 @@ elif st.session_state.page == "project":
     if session_key not in st.session_state:
         st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
 
-    # Main editable DataFrame
-    current_df = st.session_state[session_key].copy()
+    st.markdown(f"### 🧾 Project: {project}")
 
-    # -----------------------
-    # Header Buttons
-    # -----------------------
+    # Header buttons
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
-    with col1:
-        st.markdown(f"### 🧾 Project: {project}")
-
     with col2:
         if st.button("⬅️ Back", key="back_top"):
             st.session_state.page = "welcome"
-            
+
     with col4:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # -----------------------
-    # Data Editor (no live computation)
+    # Editable Table (inside form to prevent flicker)
     # -----------------------
-    edited_df = st.data_editor(
-        current_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        key=f"editor_{project}"
-    )
+    with st.form("save_project_form"):
+        edited_df = st.data_editor(
+            st.session_state[session_key],
+            num_rows="dynamic",
+            use_container_width=True,
+            key=f"editor_{project}_form"
+        )
 
-    # -----------------------
-    # Update session DF only if edited
-    # -----------------------
-    if not edited_df.equals(current_df):
-        st.session_state[session_key] = edited_df.copy()
-        st.session_state.unsaved_changes = True
-
-    # -----------------------
-    # Show totals (only after saving)
-    # -----------------------
-    totals = st.session_state.get(session_key + "_totals", (0, 0, 0, 0))
-    total, discount, vat, grand_total = totals
-
-    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
-
-    if st.session_state.get("unsaved_changes", False):
-        st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
-
-    # -----------------------
-    # Save button
-    # -----------------------
-    save_col1, save_col2 = st.columns([5, 1])
-    with save_col2:
-        if st.button("💾 Save Changes", key="save_changes"):
+        submit = st.form_submit_button("💾 Save Changes")
+        if submit:
             with st.spinner("Saving changes..."):
                 try:
-                    new_df = st.session_state[session_key].copy()
-
-                    # Ensure numeric fields
+                    new_df = edited_df.copy()
                     for col in ["Qty", "Unit Price"]:
                         new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0)
-
-                    # Compute Subtotal
                     new_df["Subtotal"] = (new_df["Qty"] * new_df["Unit Price"]).round(2)
-
-                    # Ensure Items numbering
                     new_df["Item"] = range(1, len(new_df) + 1)
 
-                    # Apply changes to Google Sheet
                     old_df = df_from_worksheet(ws).reset_index(drop=True)
                     apply_sheet_updates(ws, old_df, new_df)
 
-                    # Compute totals only after saving
+                    # Compute totals
                     total = new_df["Subtotal"].sum()
                     try:
                         discount = float(ws.acell("J8").value or 0)
-                    except Exception:
+                    except:
                         discount = 0.0
                     vat = total * 0.12
                     grand_total = total + vat - discount
 
-                    # Save totals to sheet
                     save_totals_to_ws(ws, total, vat, grand_total)
 
-                    # Update session DF and totals
                     st.session_state[session_key] = new_df.copy()
                     st.session_state[session_key + "_totals"] = (total, discount, vat, grand_total)
-                    st.session_state.unsaved_changes = False
-                    st.toast("✅ Changes saved to Google Sheets!", icon="💾")
+                    st.success("✅ Changes saved to Google Sheets!")
                 except Exception as e:
                     st.error(f"❌ Failed to save changes: {e}")
 
     # -----------------------
-    # Terms & Client Info
+    # Totals Display
+    # -----------------------
+    if st.session_state.get(session_key + "_totals"):
+        total, discount, vat, grand_total = st.session_state[session_key + "_totals"]
+        st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
+
+    # -----------------------
+    # Terms & Client Info (separate forms)
     # -----------------------
     st.markdown("---")
     st.subheader("Terms & Conditions")
     terms = read_terms_from_ws(ws)
-    col1, col2 = st.columns(2)
-    with col1:
-        t_payment = st.text_input("TERMS OF PAYMENT", value=terms.get("TERMS OF PAYMENT", ""))
-        t_DELIVERY = st.text_input("DELIVERY", value=terms.get("DELIVERY", ""))
-        t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
-    with col2:
-        t_WARRANTY = st.text_input("WARRANTY", value=terms.get("WARRANTY", ""))
-        t_price = st.text_input("PRICE VALIDITY", value=terms.get("PRICE VALIDITY", ""))
+    with st.form("terms_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            t_payment = st.text_input("TERMS OF PAYMENT", value=terms.get("TERMS OF PAYMENT", ""))
+            t_DELIVERY = st.text_input("DELIVERY", value=terms.get("DELIVERY", ""))
+            t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
+        with col2:
+            t_WARRANTY = st.text_input("WARRANTY", value=terms.get("WARRANTY", ""))
+            t_price = st.text_input("PRICE VALIDITY", value=terms.get("PRICE VALIDITY", ""))
 
-    if st.button("Save Terms", key="save_terms"):
-        save_terms_to_ws(ws, {
-            "TERMS OF PAYMENT": t_payment,
-            "DELIVERY": t_DELIVERY,
-            "WARRANTY": t_WARRANTY,
-            "PRICE VALIDITY": t_price,
-            "Discount": t_discount
-        })
-        st.success("Saved terms successfully.")
+        submit_terms = st.form_submit_button("Save Terms")
+        if submit_terms:
+            save_terms_to_ws(ws, {
+                "TERMS OF PAYMENT": t_payment,
+                "DELIVERY": t_DELIVERY,
+                "WARRANTY": t_WARRANTY,
+                "PRICE VALIDITY": t_price,
+                "Discount": t_discount
+            })
+            st.success("Saved terms successfully.")
 
     st.markdown("---")
     st.subheader("Client Information")
@@ -764,24 +736,26 @@ elif st.session_state.page == "project":
         except:
             saved_values[field] = ""
 
-    colA, colB = st.columns(2)
-    with colA:
-        title_input = st.text_input("Title", value=saved_values["Title"])
-        office_input = st.text_input("Office", value=saved_values["Office"])
-    with colB:
-        company_input = st.text_input("Company", value=saved_values["Company"])
-        editedby_input = st.text_input("Edited By", value=saved_values["Edited By"])
-    message_input = st.text_area("Message", value=saved_values["Message"], height=120)
+    with st.form("client_form"):
+        colA, colB = st.columns(2)
+        with colA:
+            title_input = st.text_input("Title", value=saved_values["Title"])
+            office_input = st.text_input("Office", value=saved_values["Office"])
+        with colB:
+            company_input = st.text_input("Company", value=saved_values["Company"])
+            editedby_input = st.text_input("Edited By", value=saved_values["Edited By"])
+        message_input = st.text_area("Message", value=saved_values["Message"], height=120)
 
-    if st.button("Save Client Info"):
-        updates = [
-            {"range": f"I{i}", "values": [[field]]} for i, field in enumerate(client_fields, start=14)
-        ] + [
-            {"range": f"J{i}", "values": [[value]]} for i, value in enumerate(
-                [title_input, office_input, company_input, message_input, editedby_input], start=14)
-        ]
-        ws.batch_update(updates)
-        st.success("Client information saved!")
+        submit_client = st.form_submit_button("Save Client Info")
+        if submit_client:
+            updates = [
+                {"range": f"I{i}", "values": [[field]]} for i, field in enumerate(client_fields, start=14)
+            ] + [
+                {"range": f"J{i}", "values": [[value]]} for i, value in enumerate(
+                    [title_input, office_input, company_input, message_input, editedby_input], start=14)
+            ]
+            ws.batch_update(updates)
+            st.success("Client information saved!")
 
     # -----------------------
     # Export PDF
@@ -814,9 +788,13 @@ elif st.session_state.page == "project":
             st.error(f"❌ Failed to generate PDF: {e}")
 
 
+
+
+
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
