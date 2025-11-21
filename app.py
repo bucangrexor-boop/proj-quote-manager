@@ -404,7 +404,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         new_row.append(Paragraph(str(cell), body_style))
                     else:
                         new_row.append(cell)
-                elif j in [3, 5, 6]:
+                elif j == 3:
+                    try:
+                        qty_val = int(cell)
+                    except:
+                        qty_val = 0
+                    new_row.append(Paragraph(f"{qty_val}", body_style_right)
+                elif j in [5, 6]:
+                    try:
+                        num_val = float(cell)
+                    except:
+                        num_val = 0
                     new_row.append(Paragraph(str(cell), body_style_right))
             # Other columns (Item, Part No., Unit)
                 else:
@@ -718,6 +728,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
