@@ -375,31 +375,40 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     col_widths = [available_width * p for p in proportions]
 
     # Wrap description column
+    # -----------------------
+# Wrap table data for main table
+# -----------------------
     table_data_paragraphs = []
     for i, row in enumerate(table_data):
         new_row = []
         for j, cell in enumerate(row):
             if i == 0:
-                new_row.append(cell)  # header
+            # Header row: keep as plain text
+                new_row.append(cell)
             else:
+            # Only wrap Description column (index 2)
                 if j == 2:
-                    new_row.append(Paragraph(str(cell), body_style))
+                    # If cell is already Paragraph, keep it, else wrap text
+                    if not isinstance(cell, Paragraph):
+                        new_row.append(Paragraph(str(cell), body_style))
+                    else:
+                        new_row.append(cell)
                 else:
                     new_row.append(cell)
         table_data_paragraphs.append(new_row)
 
-    # -----------------------
-    # Main Table (full width)
-    # -----------------------
+# -----------------------
+# Main Table (full width)
+# -----------------------
     table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        # Header alignment
+    # Header alignment
         ("ALIGN", (0, 0), (1, 0), "CENTER"),
         ("ALIGN", (2, 0), (-1, 0), "CENTER"),
-        # Body alignment
+    # Body alignment
         ("ALIGN", (0, 1), (0, -1), "CENTER"),
         ("ALIGN", (1, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
@@ -409,7 +418,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     ]))
     elements.append(table)
     elements.append(Spacer(1, 12))
-
     # -----------------------
     # Totals Table
     # -----------------------
@@ -696,6 +704,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
