@@ -580,6 +580,16 @@ elif st.session_state.page == "project":
 
     with col4:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
+        
+    if export_pdf:
+        with col5:
+            st.download_button(
+                label="⬇️ Download Price Quote PDF",
+                data=pdf_buffer,
+                file_name=f"{project}_quotation.pdf",
+                mime="application/pdf",
+                key="download_pdf"
+            )
 
     # -----------------------
     # Editable Table (inside form to prevent flicker)
@@ -727,6 +737,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
