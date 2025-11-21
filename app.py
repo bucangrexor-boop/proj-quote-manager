@@ -273,6 +273,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                             topMargin=72, bottomMargin=72)
 
     elements = []
+    story = []
     styles = getSampleStyleSheet()
 
     # -----------------------
@@ -777,6 +778,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
