@@ -411,7 +411,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                         qty_val = int(cell)
                     except:
                         qty_val = 0
-                    new_row.append(Paragraph(qty_val, body_style_right))
+                    new_row.append(Paragraph(f"{qty_val}", body_style_right))
             # Unit Price + Subtotal columns (indexes 5,6)
                 elif j in [5, 6]:
                     try:
@@ -733,6 +733,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
