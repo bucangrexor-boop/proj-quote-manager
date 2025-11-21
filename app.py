@@ -433,7 +433,10 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),   # Unit Price + Subtotal
     ]))
     elements.append(table)
-
+    max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)  # 200 for logos and text above
+    table_frame = KeepInFrame(available_width, max_table_height, content=[table], mode='shrink')
+    elements.append(table_frame)
+    elements.append(Spacer(1, 0))
     # -----------------------
     # Totals Table
     # -----------------------
@@ -721,6 +724,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
