@@ -263,62 +263,49 @@ pdfmetrics.registerFont(TTFont('Arial-Narrow', font('ARIALN.TTF')))
 pdfmetrics.registerFont(TTFont('Calibri', font('CALIBRI.TTF')))
 pdfmetrics.registerFont(TTFont('Calibri-Bold', font('CALIBRIB.TTF')))
 
-
 def generate_pdf(project_name, df, totals, terms, client_info=None,
                  left_logo_path=None, right_logo_path=None):
 
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4,
-                            rightMargin=54, leftMargin=54,
-                            topMargin=72, bottomMargin=72)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=54,
+        leftMargin=54,
+        topMargin=72,
+        bottomMargin=72
+    )
 
     elements = []
-    story = []
     styles = getSampleStyleSheet()
 
     # -----------------------
     # Custom Styles
     # -----------------------
     price_quote_style = ParagraphStyle(
-        "PriceQuote",
-        fontName="Calibri-Bold",
-        fontSize=8,
-        alignment=1  # CENTER
+        "PriceQuote", fontName="Calibri-Bold",
+        fontSize=8, alignment=1
     )
     ref_style = ParagraphStyle(
-        "RefStyle",
-        fontName="Arial-Narrow",
-        fontSize=7,
-        alignment=1  # CENTER
+        "RefStyle", fontName="Arial-Narrow",
+        fontSize=7, alignment=1
     )
     title_style = ParagraphStyle(
-        "TitleStyle",
-        fontName="Arial-Bold",
-        fontSize=8,
-        alignment=0  # LEFT
+        "TitleStyle", fontName="Arial-Bold",
+        fontSize=8, alignment=0
     )
     office_style = ParagraphStyle(
-        "OfficeStyle",
-        fontName="Arial-Bold",
-        fontSize=7,
-        alignment=0,
-        leading=10,
-        spaceAfter = 0
+        "OfficeStyle", fontName="Arial-Bold",
+        fontSize=7, alignment=0, leading=10
     )
     normal_style = ParagraphStyle(
-        "NormalStyle",
-        fontName="Arial",
-        fontSize=7,
-        alignment=0,
-        leading=10,
-        spaceAfter = 0
+        "NormalStyle", fontName="Arial",
+        fontSize=7, alignment=0, leading=10
     )
-    table_header_style = ParagraphStyle(
-        "TableHeader",
-        fontName="Arial-Bold",
-        fontSize=7,
-        alignment=1  # CENTER
-    )
+    wrap_style = styles["BodyText"]
+    wrap_style.fontName = "Arial"
+    wrap_style.fontSize = 7
+    wrap_style.leading = 9
 
     # -----------------------
     # Load logos safely
@@ -329,28 +316,33 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                 response = requests.get(url_or_path)
                 response.raise_for_status()
                 image_data = BytesIO(response.content)
-                img = RLImage(image_data, width=width, height=height)  # height=None keeps aspect ratio
+                img = RLImage(image_data, width=width, height=height)
             else:
                 img = RLImage(url_or_path, width=width, height=height)
+
             img.hAlign = 'LEFT'
             return img
-        except Exception as e:
-            print("Failed to load logo:", e)
-        # Use a transparent spacer instead of empty string
-            return Spacer(width or 50 , height or 20)
 
-    left_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
-                        width = 121.32 * 0.75,
-                        height = 50 * 0.75)
-    right_logo = load_logo("https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
-                        width= 201.89 * 0.75,
-                        height= 17.33 * 0.75)    
+        except Exception:
+            return Spacer(width or 50, height or 20)
+
+    left_logo = load_logo(
+        "https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
+        width=121.32 * 0.75,
+        height=50 * 0.75
+    )
+    right_logo = load_logo(
+        "https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
+        width=201.89 * 0.75,
+        height=17.33 * 0.75
+    )
+
     # -----------------------
-    # Header (logos)
+    # Header
     # -----------------------
     header_table = Table(
         [[left_logo, right_logo]],
-        colWidths=[3*inch, 3*inch]
+        colWidths=[3 * inch, 3 * inch]
     )
     header_table.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -360,32 +352,23 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(header_table)
     elements.append(Spacer(1, 0))
 
-    # -----------------------
-    # Price Quote Title
-    # -----------------------
+    # Title
     elements.append(Paragraph("P R I C E   Q U O T E", price_quote_style))
     elements.append(Spacer(1, 0))
 
-    # -----------------------
-    # Ref No.
-    # -----------------------
+    # Reference
     elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
     elements.append(Spacer(1, 2))
 
-    # -----------------------
     # Date
-    # -----------------------
     date_str = datetime.now().strftime("%d-%b-%y")
-    date_line = Paragraph(
+    elements.append(Paragraph(
         f'<para alignment="right"><b>Date</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{date_str}</para>',
         ref_style
-    )
-    elements.append(date_line)
+    ))
     elements.append(Spacer(1, 12))
 
-    # -----------------------
     # Client Info
-    # -----------------------
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
         elements.append(Spacer(1, 10))
@@ -395,22 +378,17 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         elements.append(Paragraph("Dear Sir:", normal_style))
         elements.append(Spacer(1, 10))
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
-        elements.append(Spacer(1, 10))  
+        elements.append(Spacer(1, 10))
+
     # -----------------------
-    # TABLE DATA PREPARATION
+    # Table Data
     # -----------------------
     table_data = []
     header = df.columns.tolist()
     table_data.append(header)
 
-    styles = getSampleStyleSheet()
-    wrap_style = styles["BodyText"]
-    wrap_style.fontName = "Arial"
-    wrap_style.fontSize = 7
-    wrap_style.leading = 9  # make slightly bigger than font size for line spacing
-
     for i, row in df.reset_index(drop=True).iterrows():
-    # --- SAFE ITEM NUMBER HANDLING ---
+
         raw_item = row.get("Item", None)
         if pd.isna(raw_item) or raw_item is None or str(raw_item).strip() == "":
             item_no = i + 1
@@ -419,78 +397,66 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
                 item_no = int(float(str(raw_item).strip()))
             except:
                 item_no = i + 1
-    # --------------------------------
 
-    # WRAP LONG DESCRIPTION
         description = Paragraph(str(row.get("Description", "") or ""), wrap_style)
 
-    # Qty → FORCE INTEGER (NO DECIMALS)
-        qty_raw = row.get("Qty", 0)
         try:
-            qty = int(float(qty_raw))
+            qty = int(float(row.get("Qty", 0)))
         except:
             qty = 0
 
-    # Append row to table
         table_data.append([
             item_no,
             str(row.get("Part Number", "") or ""),
             description,
-            qty,  # integer-only Qty
+            qty,
             str(row.get("Unit", "") or ""),
             f"{row.get('Unit Price', 0):.2f}",
             f"{row.get('Subtotal', 0):.2f}",
         ])
 
-# ----------------------------------------------------
-# COLUMN WIDTHS BASED ON AVAILABLE PAGE SPACE
-# ----------------------------------------------------
+    # -----------------------
+    # Column Widths
+    # -----------------------
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
     proportions = [0.0748, 0.1247, 0.4423, 0.0399, 0.0474, 0.1338, 0.1371]
-    total_prop = sum(proportions)
-    proportions = [p / total_prop for p in proportions]
+    proportions = [p / sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
 
-# ----------------------------------------------------
-# CREATE MAIN TABLE WITH WRAPPING & AUTO-HEIGHT
-# ----------------------------------------------------
-    table = Table(table_data, colWidths=col_widths, repeatRows=1, rowHeights=None)
-
+    # -----------------------
+    # Main Table
+    # -----------------------
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
-
-    # Header
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("FONTNAME", (0, 0), (-1, 0), "Arial-Bold"),
         ("FONTSIZE", (0, 0), (-1, 0), 9),
         ("ALIGN", (0, 0), (-1, 0), "CENTER"),
 
-    # Body
         ("FONTNAME", (0, 1), (-1, -1), "Arial"),
         ("FONTSIZE", (0, 1), (-1, -1), 8),
         ("VALIGN", (0, 1), (-1, -1), "MIDDLE"),
 
-    # Alignment per column
         ("ALIGN", (0, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
         ("ALIGN", (3, 1), (3, -1), "RIGHT"),
         ("ALIGN", (4, 1), (4, -1), "CENTER"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
-
-    # Padding proportional to font
-        ("TOPPADDING", (0, 1), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, 0), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 0),
     ]))
 
     elements.append(table)
-    elements.append(Spacer(1, 0))
+    elements.append(Spacer(1, 6))
 
     # -----------------------
-    # Totals Table (aligned over last 2 columns)
-    # ----------------------
+    # TOTALS TABLE — EXACT MATCH UNDER COL 5–6
+    # -----------------------
+    unit_price_index = 5
+    subtotal_index = 6
+
+    left_space_width = sum(col_widths[:unit_price_index])
+    totals_width = col_widths[unit_price_index] + col_widths[subtotal_index]
 
     totals_data = [
         ["Subtotal", f"₱ {totals['subtotal']:,.2f}"],
@@ -499,41 +465,42 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ["TOTAL", f"₱ {totals['total']:,.2f}"]
     ]
 
-# Create totals table
     totals_table = Table(
         totals_data,
-        colWidths=[100, 120],      # ← Make these narrower so table stays right-side
-        hAlign='RIGHT'             # ← THIS IS THE IMPORTANT LINE
+        colWidths=[col_widths[unit_price_index], col_widths[subtotal_index]]
     )
 
     totals_table.setStyle(TableStyle([
-        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
-        ('FONTNAME', (0,0), (-1,-2), 'Helvetica'),
-        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
-        ('BACKGROUND', (0,-1), (-1,-1), colors.lightgreen),
-        ('LINEABOVE', (0,-1), (-1,-1), 1, colors.black),
-        ('INNERGRID', (0,0), (-1,-1), 0.25, colors.grey),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.black),
+        ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+        ("FONTNAME", (0, 0), (-1, -2), "Arial"),
+        ("FONTNAME", (0, -1), (-1, -1), "Arial-Bold"),
+        ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
     ]))
 
-# Add a small space before totals appear
-    story.append(Spacer(1, 12))
+    wrapper_table = Table(
+        [[Spacer(left_space_width, 0), totals_table]],
+        colWidths=[left_space_width, totals_width]
+    )
+    wrapper_table.setStyle(TableStyle([
+        ("ALIGN", (1, 0), (1, 0), "RIGHT")
+    ]))
 
-# Add to the story
-    story.append(totals_table)
-
+    elements.append(wrapper_table)
+    elements.append(Spacer(1, 20))
 
     # -----------------------
-    # Terms & Conditions
+    # Terms
     # -----------------------
     for k, v in terms.items():
         if k == "Discount":
             continue
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
+
     elements.append(Spacer(1, 12))
-    # -----------------------
-    # Sign-off
-    # -----------------------
+
+    # Sign Off
     elements.append(Paragraph("Thank you for doing business with us!", normal_style))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Respectfully yours,", normal_style))
@@ -542,12 +509,15 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
         elements.append(Paragraph("Ants Technologies, Inc.", ref_style))
+
     # -----------------------
     # Build PDF
     # -----------------------
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
 
 # ===============================================================
 # UI Pages
@@ -778,6 +748,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
