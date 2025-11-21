@@ -406,7 +406,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         for cell in row:
             if i==0:
                 new_row.append(str(cell))
-            else
+            else:
                 new_row.append(Paragraph(str(cell), body_style) if not isinstance(cell, Paragraph) else cell)
         table_data_paragraphs.append(new_row)
 
@@ -718,6 +718,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
