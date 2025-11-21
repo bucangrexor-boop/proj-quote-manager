@@ -624,10 +624,8 @@ elif st.session_state.page == "create_project":
         st.session_state.page = "welcome"
         st.rerun()
 
+#-------------Project UI-----------------------
 
-# ----------------------
-# Project Page (Optimized) - REPLACEMENT BLOCK
-# ----------------------
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
@@ -637,23 +635,17 @@ elif st.session_state.page == "project":
         st.session_state.ws_project = project
     ws = st.session_state.ws
 
+    # Session DF key
     session_key = f"project_df_{project}"
     if session_key not in st.session_state:
         st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
 
-    df_live = st.session_state[session_key]
+    # Main editable DataFrame
+    current_df = st.session_state[session_key].copy()
 
-    # Show editable table
-    edited_df = st.data_editor(df_live, key=f"data_editor_{project}")
-
-    # Only clean and save if changed
-    if not edited_df.equals(df_live):
-        edited_df["Qty"] = pd.to_numeric(edited_df["Qty"], errors="coerce").fillna(0)
-        edited_df["Unit Price"] = pd.to_numeric(edited_df["Unit Price"], errors="coerce").fillna(0)
-        edited_df["Subtotal"] = (edited_df["Qty"] * edited_df["Unit Price"]).round(2)
-        st.session_state[session_key] = edited_df.copy()
-        
+    # -----------------------
     # Header Buttons
+    # -----------------------
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
@@ -661,14 +653,10 @@ elif st.session_state.page == "project":
     with col2:
         if st.button("🔄 Refresh", key="refresh_sheet"):
             with st.spinner("Reloading data..."):
-                reloaded = df_from_worksheet(ws)
-                st.session_state[session_key] = reloaded.reset_index(drop=True)
-                df_ref = st.session_state[session_key]
+                reloaded = df_from_worksheet(ws).reset_index(drop=True)
+                st.session_state[session_key] = reloaded
                 st.session_state.unsaved_changes = False
             st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
-            refresh_container.empty()
-
-    # Note: removed the + Row button per user's request
 
     with col4:
         if st.button("⬅️ Back", key="back_top"):
@@ -678,12 +666,9 @@ elif st.session_state.page == "project":
     with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
-    # This is the ONE source of truth for the editor
-    current_df = st.session_state[session_key]
-    
-    # ---------------------------------------------------
-    # ✅ Data editor — edit the session DF directly
-    # ---------------------------------------------------
+    # -----------------------
+    # Data Editor
+    # -----------------------
     edited_df = st.data_editor(
         current_df,
         num_rows="dynamic",
@@ -691,30 +676,23 @@ elif st.session_state.page == "project":
         key=f"editor_{project}"
     )
 
-    # ---------------------------------------------------
-    # ✅ Only update session DF if something changed
-    # ---------------------------------------------------
+    # -----------------------
+    # Update DF only if edited
+    # -----------------------
     if not edited_df.equals(current_df):
+        # Ensure numeric fields
+        edited_df["Qty"] = pd.to_numeric(edited_df["Qty"], errors="coerce").fillna(0)
+        edited_df["Unit Price"] = pd.to_numeric(edited_df["Unit Price"], errors="coerce").fillna(0)
+        edited_df["Subtotal"] = (edited_df["Qty"] * edited_df["Unit Price"]).round(2)
+
+        # Update session DF
         st.session_state[session_key] = edited_df.copy()
         st.session_state.unsaved_changes = True
 
-    # ---------------------------------------------------
-    # ✅ Warning for unsaved edits
-    # ---------------------------------------------------
-    if st.session_state.get("unsaved_changes", False):
-        st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
-        
-    # Always work on a copy to avoid triggering Streamlit reruns
-    current_df = st.session_state[session_key].copy()
-
-# Make sure numeric fields are correct
-    current_df["Qty"] = pd.to_numeric(current_df["Qty"], errors="coerce").fillna(0).astype(float)
-    current_df["Unit Price"] = pd.to_numeric(current_df["Unit Price"], errors="coerce").fillna(0).astype(float)
-    current_df["Subtotal"] = (current_df["Qty"] * current_df["Unit Price"]).round(2)
-# Save the computed version back to session state (won’t break the editor)
-    st.session_state[session_key] = current_df
-    # --- Totals --- (compute BEFORE Save button so they exist when saving)
-    total = current_df["Subtotal"].sum()
+    # -----------------------
+    # Show totals
+    # -----------------------
+    total = st.session_state[session_key]["Subtotal"].sum()
     try:
         discount = float(ws.acell("J8").value or 0)
     except Exception:
@@ -722,37 +700,37 @@ elif st.session_state.page == "project":
     vat = total * 0.12
     grand_total = total + vat - discount
 
-    # Save button (manual batch save)
+    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
+
+    if st.session_state.get("unsaved_changes", False):
+        st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
+
+    # -----------------------
+    # Save button
+    # -----------------------
     save_col1, save_col2 = st.columns([5, 1])
     with save_col2:
         if st.button("💾 Save Changes", key="save_changes"):
-            with st.spinner("Saving changes to Google Sheets..."):
+            with st.spinner("Saving changes..."):
                 try:
-                    session_key = f"project_df_{project}"
-
-                    # ✅ Get current edited DF (this is the one true source)
                     new_df = st.session_state[session_key].copy()
-
-                    # ✅ Load sheet version for diff
                     old_df = df_from_worksheet(ws).reset_index(drop=True)
 
-                    # ✅ Numeric cleanup
+                    # Ensure numeric
                     for col in ["Qty", "Unit Price", "Subtotal"]:
                         new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0).astype(float)
-
-                    # ✅ Recompute subtotal
                     new_df["Subtotal"] = (new_df["Qty"] * new_df["Unit Price"]).round(2)
 
-                    # ✅ Ensure pure Python numbers (avoid numpy in gspread)
-                    new_df = new_df.applymap(lambda x: x.item() if hasattr(x, "item") else x)
-    
-                    # ✅ Ensure Items always correct
+                    # Ensure Items numbering
                     new_df["Item"] = range(1, len(new_df) + 1)
 
-                    # ✅ Write ONLY the changed rows
+                    # Apply changes to sheet
                     apply_sheet_updates(ws, old_df, new_df)
 
-                    # ✅ Recompute totals with the saved values (in case J8 changed externally)
+                    # Recompute totals
                     saved_total = new_df["Subtotal"].sum()
                     saved_vat = saved_total * 0.12
                     try:
@@ -760,35 +738,17 @@ elif st.session_state.page == "project":
                     except Exception:
                         saved_discount = 0.0
                     saved_grand = saved_total + saved_vat - saved_discount
-
-                    # ✅ Save totals below
                     save_totals_to_ws(ws, saved_total, saved_vat, saved_grand)
 
-                    # ✅ Update session DF so editor stays in sync — critical fix!
                     st.session_state[session_key] = new_df.copy()
-
-                    # ✅ Mark clean
                     st.session_state.unsaved_changes = False
-
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
-
                 except Exception as e:
                     st.error(f"❌ Failed to save changes: {e}")
 
-    # Display metrics
-    st.markdown("""
-        <style>
-        .big-metric { font-size: 28px; font-weight: 700; color: #222; }
-        .highlight { font-size: 30px; font-weight: 800; color: #0a8754; }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='big-metric'>VAT (12%): ₱{vat:,.2f}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='highlight'>Grand Total: ₱{grand_total:,.2f}</div>", unsafe_allow_html=True)
-
-    # Terms & Conditions (unchanged)
+    # -----------------------
+    # Terms & Client Info
+    # -----------------------
     st.markdown("---")
     st.subheader("Terms & Conditions")
     terms = read_terms_from_ws(ws)
@@ -811,58 +771,44 @@ elif st.session_state.page == "project":
         })
         save_totals_to_ws(ws, total, vat, grand_total)
         st.success("Saved terms successfully.")
-        
-    # ---------------------------------------------
-    # Additional Contact Info Form (J14–J17)
-    # ---------------------------------------------
+
     st.markdown("---")
     st.subheader("Client Information")
 
     # Load existing values
-    try:
-        saved_title = ws.acell("J14").value or ""
-        saved_office = ws.acell("J15").value or ""
-        saved_company = ws.acell("J16").value or ""
-        saved_message = ws.acell("J17").value or ""
-        saved_editedby = ws.acell("J18").value or ""
-    except:
-        saved_title = saved_office = saved_company = saved_message = saved_editedby = ""
+    client_fields = ["Title", "Office", "Company", "Message", "Edited By"]
+    saved_values = {}
+    for i, field in enumerate(client_fields, start=14):
+        try:
+            saved_values[field] = ws.acell(f"J{i}").value or ""
+        except:
+            saved_values[field] = ""
 
     colA, colB = st.columns(2)
-
     with colA:
-        title_input = st.text_input("Title", value=saved_title)
-        office_input = st.text_input("Office", value=saved_office)
+        title_input = st.text_input("Title", value=saved_values["Title"])
+        office_input = st.text_input("Office", value=saved_values["Office"])
     with colB:
-        company_input = st.text_input("Company", value=saved_company)
-        editedby_input = st.text_input("Edited By", value=saved_editedby)
-        
-    message_input = st.text_area("Message", value=saved_message, height=120)
+        company_input = st.text_input("Company", value=saved_values["Company"])
+        editedby_input = st.text_input("Edited By", value=saved_values["Edited By"])
+    message_input = st.text_area("Message", value=saved_values["Message"], height=120)
 
     if st.button("Save Client Info"):
         updates = [
-            {"range": "I14", "values": [["Title"]]},
-            {"range": "J14", "values": [[title_input]]},
-
-            {"range": "I15", "values": [["Office"]]},
-            {"range": "J15", "values": [[office_input]]},
-    
-            {"range": "I16", "values": [["Company"]]},
-            {"range": "J16", "values": [[company_input]]},
-
-            {"range": "I17", "values": [["Message"]]},
-            {"range": "J17", "values": [[message_input]]},
-            
-            {"range": "I18", "values": [["Edited By"]]},
-            {"range": "J18", "values": [[editedby_input]]},
+            {"range": f"I{i}", "values": [[field]]} for i, field in enumerate(client_fields, start=14)
+        ] + [
+            {"range": f"J{i}", "values": [[value]]} for i, value in enumerate(
+                [title_input, office_input, company_input, message_input, editedby_input], start=14)
         ]
         ws.batch_update(updates)
         st.success("Client information saved!")
 
-    # Export PDF: per your choice (C) always use latest saved sheet version
+    # -----------------------
+    # Export PDF
+    # -----------------------
     if export_pdf:
         try:
-            sheet_df = df_from_worksheet(ws)
+            sheet_df = st.session_state[session_key]
             terms = read_terms_from_ws(ws)
             totals = {
                 "subtotal": sheet_df["Subtotal"].sum(),
@@ -877,11 +823,7 @@ elif st.session_state.page == "project":
                 "Message": ws.acell("J17").value or "",
                 "Edited By": ws.acell("J18").value or ""
             }
-
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info,
-                left_logo_path ="https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
-                right_logo_path ="https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png"
-            )
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info)
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
@@ -891,6 +833,8 @@ elif st.session_state.page == "project":
         except Exception as e:
             st.error(f"❌ Failed to generate PDF: {e}")
 
+
 # ===============================================================
 # End of File
 # ===============================================================
+
