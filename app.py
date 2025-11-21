@@ -624,45 +624,24 @@ elif st.session_state.page == "create_project":
         st.session_state.page = "welcome"
         st.rerun()
 
-#-------------Project UI---------
+#-------------Project UI--------- 
 
 elif st.session_state.page == "project":
     project = st.session_state.get("current_project")
 
-    # -----------------------
-    # Worksheet (cached)
-    # -----------------------
+    # Get worksheet
     if "ws" not in st.session_state or st.session_state.get("ws_project") != project:
         st.session_state.ws = get_worksheet_with_retry(ss, project)
         st.session_state.ws_project = project
     ws = st.session_state.ws
 
-    # -----------------------
-    # Session DataFrame
-    # -----------------------
+    # Session DF key
     session_key = f"project_df_{project}"
     if session_key not in st.session_state:
         st.session_state[session_key] = df_from_worksheet(ws).reset_index(drop=True)
 
-    current_df = st.session_state[session_key]
-
-    # -----------------------
-    # Cache Terms & Client Info
-    # -----------------------
-    if f"terms_{project}" not in st.session_state:
-        st.session_state[f"terms_{project}"] = read_terms_from_ws(ws)
-
-    if f"client_{project}" not in st.session_state:
-        st.session_state[f"client_{project}"] = {
-            "Title": ws.acell("J14").value or "",
-            "Office": ws.acell("J15").value or "",
-            "Company": ws.acell("J16").value or "",
-            "Message": ws.acell("J17").value or "",
-            "Edited By": ws.acell("J18").value or ""
-        }
-
-    terms = st.session_state[f"terms_{project}"]
-    client_info = st.session_state[f"client_{project}"]
+    # Main editable DataFrame
+    current_df = st.session_state[session_key].copy()
 
     # -----------------------
     # Header Buttons
@@ -670,15 +649,25 @@ elif st.session_state.page == "project":
     col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1, 1])
     with col1:
         st.markdown(f"### 🧾 Project: {project}")
+
     with col2:
+        if st.button("🔄 Refresh", key="refresh_sheet"):
+            with st.spinner("Reloading data..."):
+                reloaded = df_from_worksheet(ws).reset_index(drop=True)
+                st.session_state[session_key] = reloaded
+                st.session_state.unsaved_changes = False
+            st.toast("✅ Data reloaded from Google Sheets", icon="🔄")
+
+    with col4:
         if st.button("⬅️ Back", key="back_top"):
             st.session_state.page = "welcome"
             st.rerun()
-    with col4:
+
+    with col5:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
 
     # -----------------------
-    # Editable DataFrame
+    # Data Editor (no live computation)
     # -----------------------
     edited_df = st.data_editor(
         current_df,
@@ -687,28 +676,18 @@ elif st.session_state.page == "project":
         key=f"editor_{project}"
     )
 
+    # -----------------------
+    # Update session DF only if edited
+    # -----------------------
     if not edited_df.equals(current_df):
-        edited_df["Qty"] = pd.to_numeric(edited_df["Qty"], errors="coerce").fillna(0)
-        edited_df["Unit Price"] = pd.to_numeric(edited_df["Unit Price"], errors="coerce").fillna(0)
-        edited_df["Subtotal"] = (edited_df["Qty"] * edited_df["Unit Price"]).round(2)
         st.session_state[session_key] = edited_df.copy()
         st.session_state.unsaved_changes = True
 
     # -----------------------
-    # Totals Calculation (cached)
+    # Show totals (only after saving)
     # -----------------------
-    totals_key = f"totals_{project}"
-    if totals_key not in st.session_state or st.session_state.get("unsaved_changes", False):
-        total = st.session_state[session_key]["Subtotal"].sum()
-        try:
-            discount = float(terms.get("Discount", 0))
-        except:
-            discount = 0.0
-        vat = total * 0.12
-        grand_total = total + vat - discount
-        st.session_state[totals_key] = (total, discount, vat, grand_total)
-
-    total, discount, vat, grand_total = st.session_state[totals_key]
+    totals = st.session_state.get(session_key + "_totals", (0, 0, 0, 0))
+    total, discount, vat, grand_total = totals
 
     st.markdown(f"<div class='big-metric'>Total: ₱{total:,.2f}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='big-metric'>Discount: -₱{discount:,.2f}</div>", unsafe_allow_html=True)
@@ -719,7 +698,7 @@ elif st.session_state.page == "project":
         st.warning("⚠️ You have unsaved edits. Click **💾 Save Changes** to commit them to Google Sheets.")
 
     # -----------------------
-    # Save Changes
+    # Save button
     # -----------------------
     save_col1, save_col2 = st.columns([5, 1])
     with save_col2:
@@ -727,75 +706,91 @@ elif st.session_state.page == "project":
             with st.spinner("Saving changes..."):
                 try:
                     new_df = st.session_state[session_key].copy()
-                    old_df = df_from_worksheet(ws).reset_index(drop=True)
+
+                    # Ensure numeric fields
+                    for col in ["Qty", "Unit Price"]:
+                        new_df[col] = pd.to_numeric(new_df[col], errors="coerce").fillna(0)
+
+                    # Compute Subtotal
+                    new_df["Subtotal"] = (new_df["Qty"] * new_df["Unit Price"]).round(2)
+
+                    # Ensure Items numbering
                     new_df["Item"] = range(1, len(new_df) + 1)
+
+                    # Apply changes to Google Sheet
+                    old_df = df_from_worksheet(ws).reset_index(drop=True)
                     apply_sheet_updates(ws, old_df, new_df)
 
-                    saved_total = new_df["Subtotal"].sum()
-                    saved_vat = saved_total * 0.12
-                    saved_discount = float(terms.get("Discount", 0))
-                    saved_grand = saved_total + saved_vat - saved_discount
-                    save_totals_to_ws(ws, saved_total, saved_vat, saved_grand)
+                    # Compute totals only after saving
+                    total = new_df["Subtotal"].sum()
+                    try:
+                        discount = float(ws.acell("J8").value or 0)
+                    except Exception:
+                        discount = 0.0
+                    vat = total * 0.12
+                    grand_total = total + vat - discount
 
+                    # Save totals to sheet
+                    save_totals_to_ws(ws, total, vat, grand_total)
+
+                    # Update session DF and totals
                     st.session_state[session_key] = new_df.copy()
-                    st.session_state["totals_" + project] = (saved_total, saved_discount, saved_vat, saved_grand)
+                    st.session_state[session_key + "_totals"] = (total, discount, vat, grand_total)
                     st.session_state.unsaved_changes = False
                     st.toast("✅ Changes saved to Google Sheets!", icon="💾")
                 except Exception as e:
                     st.error(f"❌ Failed to save changes: {e}")
 
     # -----------------------
-    # Terms & Client Info Editor
+    # Terms & Client Info
     # -----------------------
     st.markdown("---")
     st.subheader("Terms & Conditions")
+    terms = read_terms_from_ws(ws)
     col1, col2 = st.columns(2)
     with col1:
         t_payment = st.text_input("TERMS OF PAYMENT", value=terms.get("TERMS OF PAYMENT", ""))
-        t_delivery = st.text_input("DELIVERY", value=terms.get("DELIVERY", ""))
+        t_DELIVERY = st.text_input("DELIVERY", value=terms.get("DELIVERY", ""))
         t_discount = st.text_input("Discount", value=terms.get("Discount", ""))
     with col2:
-        t_warranty = st.text_input("WARRANTY", value=terms.get("WARRANTY", ""))
+        t_WARRANTY = st.text_input("WARRANTY", value=terms.get("WARRANTY", ""))
         t_price = st.text_input("PRICE VALIDITY", value=terms.get("PRICE VALIDITY", ""))
 
     if st.button("Save Terms", key="save_terms"):
-        st.session_state[f"terms_{project}"] = {
+        save_terms_to_ws(ws, {
             "TERMS OF PAYMENT": t_payment,
-            "DELIVERY": t_delivery,
-            "WARRANTY": t_warranty,
+            "DELIVERY": t_DELIVERY,
+            "WARRANTY": t_WARRANTY,
             "PRICE VALIDITY": t_price,
             "Discount": t_discount
-        }
-        save_terms_to_ws(ws, st.session_state[f"terms_{project}"])
+        })
         st.success("Saved terms successfully.")
 
     st.markdown("---")
     st.subheader("Client Information")
+    client_fields = ["Title", "Office", "Company", "Message", "Edited By"]
+    saved_values = {}
+    for i, field in enumerate(client_fields, start=14):
+        try:
+            saved_values[field] = ws.acell(f"J{i}").value or ""
+        except:
+            saved_values[field] = ""
+
     colA, colB = st.columns(2)
     with colA:
-        title_input = st.text_input("Title", value=client_info["Title"])
-        office_input = st.text_input("Office", value=client_info["Office"])
+        title_input = st.text_input("Title", value=saved_values["Title"])
+        office_input = st.text_input("Office", value=saved_values["Office"])
     with colB:
-        company_input = st.text_input("Company", value=client_info["Company"])
-        editedby_input = st.text_input("Edited By", value=client_info["Edited By"])
-    message_input = st.text_area("Message", value=client_info["Message"], height=120)
+        company_input = st.text_input("Company", value=saved_values["Company"])
+        editedby_input = st.text_input("Edited By", value=saved_values["Edited By"])
+    message_input = st.text_area("Message", value=saved_values["Message"], height=120)
 
     if st.button("Save Client Info"):
-        st.session_state[f"client_{project}"] = {
-            "Title": title_input,
-            "Office": office_input,
-            "Company": company_input,
-            "Message": message_input,
-            "Edited By": editedby_input
-        }
         updates = [
-            {"range": f"I{i}", "values": [[field]]} for i, field in enumerate(
-                ["Title", "Office", "Company", "Message", "Edited By"], start=14
-            )
+            {"range": f"I{i}", "values": [[field]]} for i, field in enumerate(client_fields, start=14)
         ] + [
             {"range": f"J{i}", "values": [[value]]} for i, value in enumerate(
-                [title_input, office_input, company_input, message_input, editedby_input], start=14
-            )
+                [title_input, office_input, company_input, message_input, editedby_input], start=14)
         ]
         ws.batch_update(updates)
         st.success("Client information saved!")
@@ -804,28 +799,37 @@ elif st.session_state.page == "project":
     # Export PDF
     # -----------------------
     if export_pdf:
-        with st.spinner("Generating PDF..."):
-            pdf_buffer = generate_pdf(project, st.session_state[session_key],
-                                      {
-                                          "subtotal": total,
-                                          "discount": discount,
-                                          "vat": vat,
-                                          "total": grand_total
-                                      },
-                                      st.session_state[f"terms_{project}"],
-                                      client_info=st.session_state[f"client_{project}"])
+        try:
+            sheet_df = st.session_state[session_key]
+            terms = read_terms_from_ws(ws)
+            totals = {
+                "subtotal": sheet_df["Subtotal"].sum(),
+                "discount": float(ws.acell("J8").value or 0),
+                "vat": sheet_df["Subtotal"].sum() * 0.12,
+                "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
+            }
+            client_info = {
+                "Title": ws.acell("J14").value or "",
+                "Office": ws.acell("J15").value or "",
+                "Company": ws.acell("J16").value or "",
+                "Message": ws.acell("J17").value or "",
+                "Edited By": ws.acell("J18").value or ""
+            }
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info)
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
                 file_name=f"{project}_quotation.pdf",
                 mime="application/pdf"
             )
-
+        except Exception as e:
+            st.error(f"❌ Failed to generate PDF: {e}")
 
 
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
