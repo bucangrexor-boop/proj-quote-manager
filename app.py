@@ -387,7 +387,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         fontName="Arial",
         fontSize=7,
         leading=7,
-        alignment=2         # right
+        alignment=0         # right
     )
 
     table_data_paragraphs = []
@@ -733,6 +733,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
