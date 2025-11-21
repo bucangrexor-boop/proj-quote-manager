@@ -581,8 +581,31 @@ elif st.session_state.page == "project":
     with col4:
         export_pdf = st.button("📄 Export PDF", key="export_pdf")
         
+    pdf_buffer = None
     if export_pdf:
-        with col5:
+        try:
+            sheet_df = st.session_state[session_key]
+            terms = read_terms_from_ws(ws)
+            totals = {
+                "subtotal": sheet_df["Subtotal"].sum(),
+                "discount": float(ws.acell("J8").value or 0),
+                "vat": sheet_df["Subtotal"].sum() * 0.12,
+                "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
+            }
+            client_info = {
+                "Title": ws.acell("J14").value or "",
+                "Office": ws.acell("J15").value or "",
+                "Company": ws.acell("J16").value or "",
+                "Message": ws.acell("J17").value or "",
+                "Edited By": ws.acell("J18").value or ""
+            }
+            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info)
+            st.success("✅ PDF generated!")
+
+        except Exception as e:
+            st.error(f"❌ Failed to generate PDF: {e}")
+    with col5:
+        if pdf_buffer:
             st.download_button(
                 label="⬇️ Download Price Quote PDF",
                 data=pdf_buffer,
@@ -700,37 +723,10 @@ elif st.session_state.page == "project":
             ws.batch_update(updates)
             st.success("Client information saved!")
 
-    # -----------------------
-    # Export PDF
-    # -----------------------
-    if export_pdf:
-        try:
-            sheet_df = st.session_state[session_key]
-            terms = read_terms_from_ws(ws)
-            totals = {
-                "subtotal": sheet_df["Subtotal"].sum(),
-                "discount": float(ws.acell("J8").value or 0),
-                "vat": sheet_df["Subtotal"].sum() * 0.12,
-                "total": sheet_df["Subtotal"].sum() + (sheet_df["Subtotal"].sum() * 0.12) - float(ws.acell("J8").value or 0)
-            }
-            client_info = {
-                "Title": ws.acell("J14").value or "",
-                "Office": ws.acell("J15").value or "",
-                "Company": ws.acell("J16").value or "",
-                "Message": ws.acell("J17").value or "",
-                "Edited By": ws.acell("J18").value or ""
-            }
-            pdf_buffer = generate_pdf(project, sheet_df, totals, terms, client_info=client_info)
-        except Exception as e:
-            st.error(f"❌ Failed to generate PDF: {e}")
-
-
-
-
-
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
