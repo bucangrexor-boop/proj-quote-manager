@@ -371,7 +371,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     header = df.columns.tolist()
     table_data = [header]
-
     for i, row in df.reset_index(drop=True).iterrows():
         item_no = i + 1 if pd.isna(row.get("Item")) or row.get("Item") == "" else row.get("Item")
         description = Paragraph(str(row.get("Description", "")), wrap_style)
@@ -391,6 +390,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # -----------------------
     PAGE_WIDTH, PAGE_HEIGHT = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
+                 #Item----Part No.-Descr-- --Qty ---- Unit--Price---Subtotal
     proportions = [0.0748, 0.1247, 0.4423, 0.0399, 0.0474, 0.1338, 0.1371]
     proportions = [p/sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
@@ -399,37 +399,40 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     # Wrap all cells in Paragraphs
     # -----------------------
     body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=8, leading=10, alignment=0)
-
     table_data_paragraphs = []
-    for i, row in enumerate(table_data):
-        new_row = []
-        for cell in row:
-            if i==0:
-                new_row.append(str(cell))
-            else:
-                new_row.append(Paragraph(str(cell), body_style) if not isinstance(cell, Paragraph) else cell)
-        table_data_paragraphs.append(new_row)
+        for i, row in enumerate(table_data):
+            new_row = []
+            for j, cell in enumerate(row):
+                if i == 0:
+            # Header row: keep plain, no wrap
+                    new_row.append(str(cell))
+                else:
+            # Wrap only Description column
+                    if j == 2:  # Description
+                        new_row.append(Paragraph(str(cell), body_style))
+                    else:
+                        new_row.append(str(cell))
+            table_data_paragraphs.append(new_row)
 
-    # -----------------------
-    # Main Table with auto-shrink
-    # -----------------------
+# -----------------------
+# Main Table
+# -----------------------
     table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
-        ("GRID", (0,0), (-1,-1), 0.3, colors.grey),
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("ALIGN", (0,1), (1,-1), "CENTER"),
-        ("ALIGN", (2,1), (2,-1), "LEFT"),
-        ("ALIGN", (3,1), (3,-1), "RIGHT"),
-        ("ALIGN", (4,1), (4,-1), "CENTER"),
-        ("ALIGN", (5,1), (6,-1), "RIGHT"),
-    ]))
+        ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("ALIGN", (0, 0), (1, 0), "CENTER"),   # Header Item + Part Number
+        ("ALIGN", (2, 0), (-1, 0), "CENTER"),  # Header Description + others
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
 
-    # Keep table in frame and auto-shrink if too long
-    max_table_height = PAGE_HEIGHT - (doc.topMargin + doc.bottomMargin + 200)  # 200 for logos and text above
-    table_frame = KeepInFrame(available_width, max_table_height, content=[table], mode='shrink')
-    elements.append(table_frame)
-    elements.append(Spacer(1, 0))
+        ("ALIGN", (0, 1), (0, -1), "CENTER"),  # Item
+        ("ALIGN", (1, 1), (1, -1), "CENTER"),  # Part Number
+        ("ALIGN", (2, 1), (2, -1), "LEFT"),    # Description
+        ("ALIGN", (3, 1), (3, -1), "CENTER"),  # Qty
+        ("ALIGN", (4, 1), (4, -1), "CENTER"),  # Unit
+        ("ALIGN", (5, 1), (6, -1), "RIGHT"),   # Unit Price + Subtotal
+    ]))
+    elements.append(table)
 
     # -----------------------
     # Totals Table
@@ -718,6 +721,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
