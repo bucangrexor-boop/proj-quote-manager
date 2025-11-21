@@ -445,7 +445,6 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("FONTSIZE", (0,0), (-1,0), 8),      # Header font size
         ("FONTSIZE", (3,1), (3,-1), 7),      # Qty font size
         ("FONTSIZE", (5,1), (6,-1), 7),      # Unit Price + Subtotal font size
-]))
     ]))
     elements.append(table)
     elements.append(Spacer(1, 0))
@@ -734,6 +733,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
