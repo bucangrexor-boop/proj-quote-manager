@@ -279,9 +279,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements = []
     styles = getSampleStyleSheet()
 
-    # -----------------------
-    # Custom Styles
-    # -----------------------
+    # -----------------------------------
+    # Custom Styles (unchanged)
+    # -----------------------------------
     price_quote_style = ParagraphStyle("PriceQuote", fontName="Calibri-Bold", fontSize=8, alignment=1)
     ref_style = ParagraphStyle("RefStyle", fontName="Arial-Narrow", fontSize=7, alignment=1)
     ref2_style = ParagraphStyle("Ref2Style", fontName="Arial-Narrow", fontSize=7, alignment=0)
@@ -291,35 +291,37 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     wrap_style = ParagraphStyle(name="WrapStyle", fontName="Arial", fontSize=7, leading=7)
     body_style = ParagraphStyle(name="BodyStyle", fontName="Arial", fontSize=7, leading=7, alignment=0)
     totals_style = ParagraphStyle(name="TotalsStyle", fontName="Arial", fontSize=7, leading=7)
-    header_style = ParagraphStyle(name="HeaderStyle", fontName="Arial-Bold", fontSize=9,)  
+    header_style = ParagraphStyle(name="HeaderStyle", fontName="Arial-Bold", fontSize=9,)
     body_style_right = ParagraphStyle(name="BodyStyleRight", fontName="Arial", fontSize=7, leading=7, alignment=1)
-    # -----------------------
-    # Load logos
-    # -----------------------
+
+    # -----------------------------------
+    # Load logos (unchanged)
+    # -----------------------------------
     def load_logo(url_or_path, width=None, height=None):
         try:
             if url_or_path.startswith("http"):
                 response = requests.get(url_or_path)
                 response.raise_for_status()
-                image_data = io.BytesIO(response.content)
-                img = RLImage(image_data, width=width, height=height)
+                img_data = io.BytesIO(response.content)
+                img = RLImage(img_data, width=width, height=height)
             else:
                 img = RLImage(url_or_path, width=width, height=height)
             img.hAlign = 'LEFT'
             return img
-        except Exception:
+        except:
             return Spacer(width or 50, height or 20)
 
     left_logo = load_logo(left_logo_path or
                           "https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/logoants.png",
                           width=121.32 * 0.75, height=50 * 0.75)
-    right_logo = load_logo(right_logo_path or
-                           "https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
-                           width=201.89 * 0.75, height=17.33 * 0.75)
 
-    # -----------------------
+    right_logo = load_logo(right_logo_path or
+                          "https://raw.githubusercontent.com/bucangrexor-boop/proj-quote-manager/main/assets/antslogo2.png",
+                          width=201.89 * 0.75, height=17.33 * 0.75)
+
+    # -----------------------------------
     # Header
-    # -----------------------
+    # -----------------------------------
     header_table = Table([[left_logo, right_logo]], colWidths=[3*inch, 3*inch])
     header_table.setStyle(TableStyle([
         ("VALIGN", (0,0), (-1,-1), "TOP"),
@@ -329,16 +331,19 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
     elements.append(header_table)
     elements.append(Spacer(1, 0))
 
-    # Title, Ref, Date
+    # Title
     elements.append(Paragraph("P R I C E   Q U O T E", price_quote_style))
     elements.append(Spacer(1, 0))
     elements.append(Paragraph(f"Ref No. {project_name}", ref_style))
     elements.append(Spacer(1, 0))
+
     date_str = datetime.now().strftime("%d-%b-%y")
     elements.append(Paragraph(f'<para alignment="right"><b>Date</b> {date_str}</para>', ref_style))
     elements.append(Spacer(1, 10))
 
-    # Client Info
+    # -----------------------------------
+    # Client Info (unchanged)
+    # -----------------------------------
     if client_info:
         elements.append(Paragraph(f"<b>{client_info.get('Title', '')}</b>", title_style))
         elements.append(Spacer(1, 10))
@@ -350,105 +355,132 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         elements.append(Paragraph(client_info.get("Message", ""), normal_style))
         elements.append(Spacer(1, 10))
 
-    # -----------------------
-    # Table Data
-    # -----------------------
+    # -----------------------------------
+    # Build Table Data (fixed subtotal logic)
+    # -----------------------------------
     header = df.columns.tolist()
-    table_data = [header]
+    table_raw = [header]
+
     for i, row in df.reset_index(drop=True).iterrows():
+        # DO NOT FORMAT NUMBERS HERE
         item_no = i + 1 if pd.isna(row.get("Item")) or row.get("Item") == "" else row.get("Item")
-        description = Paragraph(str(row.get("Description", "")), wrap_style)
-        qty = int(row.get("Qty", 0))
-        table_data.append([
+        
+        table_raw.append([
             item_no,
             str(row.get("Part Number", "")),
-            description,
-            qty,
+            Paragraph(str(row.get("Description", "")), wrap_style),
+            row.get("Qty", 0),
             str(row.get("Unit", "")),
-            f"{row.get('Unit Price', 0):,.2f}",
-            f"{row.get('Subtotal', 0):,.2f}"
+            row.get("Unit Price", 0),
+            row.get("Subtotal", 0),
         ])
 
-    # Column widths
-    PAGE_WIDTH, PAGE_HEIGHT = A4
+    # -----------------------------------
+    # Column widths (unchanged)
+    # -----------------------------------
+    PAGE_WIDTH, _ = A4
     available_width = PAGE_WIDTH - (doc.leftMargin + doc.rightMargin)
     proportions = [0.0748, 0.1247, 0.4420, 0.0402, 0.0474, 0.1338, 0.1371]
     proportions = [p / sum(proportions) for p in proportions]
     col_widths = [available_width * p for p in proportions]
 
-    # Wrap description column
-                     
-    table_data_paragraphs = []
-    for i, row in enumerate(table_data):
-        new_row = []
-        for j, cell in enumerate(row):
-            if i == 0:
-                new_row.append(cell)  # keep header as plain text
-            else:
-                if j == 2:
-                    if not isinstance(cell, Paragraph):
-                        new_row.append(Paragraph(str(cell), body_style))
-                    else:
-                        new_row.append(cell)
-                elif j in [3, 5, 6]:
-                    if j == 3:  # Qty
-                        try:
-                            qty_val = int(cell)
-                        except:
-                            qty_val = 0
-                        new_row.append(str(qty_val))
-                    else:    
-                        try:
-                            num_val = float(cell)
-                        except:
-                            num_val = 0
-                        new_row.append(f"{num_val:,.2f}")
-                else:
-                    new_row.append(Paragraph(str(cell), body_style_right ))
-        table_data_paragraphs.append(new_row)
-        
-    # Main Table (full width)
-                     
-    table = Table(table_data_paragraphs, colWidths=col_widths, repeatRows=1)
+    # -----------------------------------
+    # Convert numeric cells -> formatted text
+    # -----------------------------------
+    table_rows = []
+    for r_idx, row in enumerate(table_raw):
+        processed_row = []
+        for c_idx, cell in enumerate(row):
+
+            # Header row stays unchanged
+            if r_idx == 0:
+                processed_row.append(cell)
+                continue
+
+            # Description stays Paragraph
+            if c_idx == 2:
+                processed_row.append(cell)
+                continue
+
+            # Qty
+            if c_idx == 3:
+                try:
+                    processed_row.append(str(int(cell)))
+                except:
+                    processed_row.append("0")
+                continue
+
+            # Price & Subtotal
+            if c_idx in (5, 6):
+                try:
+                    val = float(cell)
+                except:
+                    # remove commas if string
+                    try:
+                        val = float(str(cell).replace(",", ""))
+                    except:
+                        val = 0
+                processed_row.append(f"{val:,.2f}")
+                continue
+
+            # Right aligned paragraphs
+            processed_row.append(Paragraph(str(cell), body_style_right))
+
+        table_rows.append(processed_row)
+
+    # -----------------------------------
+    # Main Table (unchanged formatting)
+    # -----------------------------------
+    table = Table(table_rows, colWidths=col_widths, repeatRows=1)
     table.setStyle(TableStyle([
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-    # Header alignment
+
+        # Header alignment
         ("ALIGN", (0, 0), (1, 0), "CENTER"),
         ("ALIGN", (2, 0), (-1, 0), "CENTER"),
-    # Body alignment
+
+        # Body
         ("ALIGN", (0, 1), (0, -1), "CENTER"),
         ("ALIGN", (1, 1), (1, -1), "CENTER"),
         ("ALIGN", (2, 1), (2, -1), "LEFT"),
         ("ALIGN", (3, 1), (3, -1), "RIGHT"),
         ("ALIGN", (4, 1), (4, -1), "RIGHT"),
         ("ALIGN", (5, 1), (6, -1), "RIGHT"),
-        ("FONTSIZE", (0,0), (-1,0), 8),      # Header font size
-        ("FONTSIZE", (3,1), (3,-1), 7),      # Qty font size
-        ("FONTSIZE", (5,1), (6,-1), 7),      # Unit Price + Subtotal font size
+
+        # Font sizes
+        ("FONTSIZE", (0,0), (-1,0), 8),
+        ("FONTSIZE", (3,1), (3,-1), 7),
+        ("FONTSIZE", (5,1), (6,-1), 7),
+
         ("TOPPADDING", (0,0), (-1,-1), 0),
         ("BOTTOMPADDING", (0,0), (-1,-1), 0),
     ]))
+
     elements.append(table)
     elements.append(Spacer(1, 0))
-    # -----------------------
-    # Totals Table
-    # -----------------------
-    unit_price_index, subtotal_index = 5, 6
-    left_space_width = sum(col_widths[:unit_price_index])
-    totals_width = col_widths[unit_price_index] + col_widths[subtotal_index]
+
+    # -----------------------------------
+    # Totals Table (unchanged)
+    # -----------------------------------
+    unit_price_i, subtotal_i = 5, 6
+    left_space_w = sum(col_widths[:unit_price_i])
+    totals_w = col_widths[unit_price_i] + col_widths[subtotal_i]
 
     totals_rows = [
         ["Subtotal", f"₱ {totals['subtotal']:,.2f}"],
         ["Discount", f"₱ {totals['discount']:,.2f}"],
         ["VAT (12%)", f"₱ {totals['vat']:,.2f}"],
-        ["TOTAL", f"₱ {totals['total']:,.2f}"]
+        ["TOTAL", f"₱ {totals['total']:,.2f}"],
     ]
     totals_data = [[Paragraph(label, totals_style), Paragraph(value, totals_style)] for label, value in totals_rows]
-    totals_data[-1] = [Paragraph("<b>TOTAL</b>", totals_style),
-                       Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style)]
-    totals_table = Table(totals_data, colWidths=[col_widths[unit_price_index], col_widths[subtotal_index]])
+    totals_data[-1] = [
+        Paragraph("<b>TOTAL</b>", totals_style),
+        Paragraph(f"<b>₱ {totals['total']:,.2f}</b>", totals_style),
+    ]
+
+    totals_table = Table(totals_data, colWidths=[col_widths[unit_price_i], col_widths[subtotal_i]])
     totals_table.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, -1), "RIGHT"),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
@@ -459,7 +491,9 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("LEFTPADDING", (0,0), (-1,-1), 1),
         ("RIGHTPADDING", (0,0), (-1,-1), 1),
     ]))
-    wrapper_table = Table([[Spacer(left_space_width, 0), totals_table]], colWidths=[left_space_width, totals_width])
+
+    wrapper_table = Table([[Spacer(left_space_w, 0), totals_table]],
+                          colWidths=[left_space_w, totals_w])
     wrapper_table.setStyle(TableStyle([
         ("ALIGN", (1, 0), (1, 0), "RIGHT"),
         ("TOPPADDING", (0,0), (-1,-1), 1),
@@ -467,36 +501,36 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
         ("LEFTPADDING", (0,0), (-1,-1), 0),
         ("RIGHTPADDING", (0,0), (-1,-1), 0),
     ]))
+
     elements.append(wrapper_table)
 
-    # -----------------------
-    # Terms
-    # -----------------------
+    # -----------------------------------
+    # Terms (unchanged)
+    # -----------------------------------
     elements.append(Spacer(1, 64))
     for k, v in terms.items():
         if k == "Discount":
             continue
         elements.append(Paragraph(f"<b>{k}:</b> {v}", normal_style))
 
-    # -----------------------
-    # Sign Off
-    # -----------------------
+    # -----------------------------------
+    # Sign Off (unchanged)
+    # -----------------------------------
     elements.append(Paragraph("Thank you for doing business with us!", normal_style))
     elements.append(Spacer(1, 12))
     elements.append(Paragraph("Respectfully yours,", normal_style))
     elements.append(Spacer(1, 30))
+
     if client_info:
         elements.append(Paragraph(client_info.get("Edited By", ""), normal_style))
         elements.append(Paragraph("Ants Technologies, Inc.", ref2_style))
 
-    # -----------------------
+    # -----------------------------------
     # Build PDF
-    # -----------------------
+    # -----------------------------------
     doc.build(elements)
     buffer.seek(0)
     return buffer
-
-
 
 # ===============================================================
 # UI Pages
@@ -724,6 +758,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
