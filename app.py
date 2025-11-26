@@ -482,7 +482,7 @@ def generate_pdf(project_name, df, totals, terms, client_info=None,
 
     totals_table = Table(totals_data, colWidths=[col_widths[unit_price_i], col_widths[subtotal_i]])
     totals_table.setStyle(TableStyle([
-        ("ALIGN", (0, 0), (1, -1), "RIGHT"),
+        ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
         ("GRID", (0, 0), (-1, -1), 0.3, colors.grey),
         ("BACKGROUND", (0, -1), (-1, -1), colors.Color(0.75, 0.88, 0.65)),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -758,6 +758,7 @@ elif st.session_state.page == "project":
 # ===============================================================
 # End of File
 # ===============================================================
+
 
 
 
